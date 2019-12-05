@@ -26,6 +26,7 @@ nyt <- read.csv("NYTHK.csv", header = FALSE, encoding = "UTF-8")
 guardian_data <- subset(guardian_data, select = - c(V1,V3))
 
 nyt_data3 <- subset(nyt_data3, select = - c(V1,V3))
+
 nyt_data3 <- nyt_data2[grepl(c("World","U.S.","Opinion","Business Day","Briefing"), nyt_data2$V3),]
 
 
@@ -76,14 +77,14 @@ ntok <- tokens_remove(ntok, pattern = c("Hong","Kong","KONG","HONG","Monday","Tu
 
 
 
-context_keyword <- kwic(ntok, pattern = "elect*")
-context_keywords <- kwic(ntok, pattern = c("elect*","victor*"), window = 11)
+context_keyword <- kwic(ntok, pattern = "elect*", window = 3)
+context_keywords <- kwic(ntok, pattern = c("elect*","victor*"), window = 3)
 context_pattern <- kwic(ntok, pattern = phrase('Junius Ho*'), window = 7)
 
 
 #Removal of tokens changes the lengths of documents, but they remain the same if you set padding = TRUE. This option is useful especially when you perform positional analysis.
 
-multiword <- kwic(ntok_nostop, pattern = phrase(c("Junius Ho","Joshua Wong")))
+multiword <- kwic(ntok, pattern = phrase(c("Junius Ho","Joshua Wong")))
 head(multiword)
 
 #To preserve these expressions in bag-of-word analysis, you have to compound them using tokens_compound().
