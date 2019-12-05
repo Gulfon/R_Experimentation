@@ -51,6 +51,8 @@ hdaily <- hdaily %>% rename(
   Date = V3,
   Text = Articles)
 
-
+write.csv(guardian, "guardian.csv")
+write.csv(nyt, "nyt.csv")
+write.csv(hdaily,"hdaily.csv")
 # Basic Functions ----
 
