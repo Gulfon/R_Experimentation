@@ -55,10 +55,38 @@ hdaily <- hdaily %>% rename(
 write.csv(guardian, "guardian.csv")
 write.csv(nyt, "nyt.csv")
 write.csv(hdaily,"hdaily.csv")
+
+
+
+
+
+# Rewriting Dates ---- 
+
+install.packages("zoo")
+library(zoo)
+
+
+guardian$Date
+GMonthYear <- as.yearmon(guardian$Date)
+guardian2 <- guardian 
+
+nyt$MonthYear <- as.yearmon(nyt$Date)
+guardian$MonthYear <- as.yearmon(guardian$Date)
+hdaily$MonthYear <- as.yearmon(hdaily$Date)
+
+head(hdaily)
+head(nyt)
+head(guardian)
+
+
+
+as.yearmon(guardian$Date[1])
 # Corpus ----
 
-nyt2 <- nyt 
+nyt2 <- nyt[order(nyt$Date),] 
+nyt2$MonthYear <- as.Date(nyt2$MonthYear)
 nyt2$Date <- as.Date(nyt2$Date)
+
 nyt2$Text <- as.character(nyt2$Text)
 
 ncorpus <- corpus(nyt2,text_field = "Text")
@@ -94,6 +122,7 @@ kw_comp <- kwic(toks_comp, pattern = c("Junius_Ho","Joshua_Wong"))
 head(kw_comp, 10)
 
 #Can also generate ngrams
+
 toks_ngram <- tokens_ngrams(ntok_clean, n = 2)
 head(toks_ngram)
 
@@ -160,7 +189,7 @@ tail(tstat_lexdiv, 5)
 
 plot(tstat_lexdiv$TTR, type = 'l', xaxt = 'n', xlab = NULL, ylab = "TTR")
 grid()
-axis(1, at = seq_len(nrow(tstat_lexdiv)), labels = docvars(nyt_dfm, 'Date'))
+axis(1, at = seq_len(nrow(tstat_lexdiv)), labels = docvars(nyt_dfm, ('MonthYear')))
 
 
 # Document/Feature Similarity ----
@@ -172,8 +201,12 @@ plot(clust, xlab = "Distance", ylab = NULL)
 
 # Relative Frequency Analysis ----
 
+require(quanteda)
+require(quanteda.corpora)
+require(lubridate)
+
 tstat_key <- textstat_keyness(nyt_dfm, 
-                              target = docvars(nyt_dfm, 'Date')) >= "2019-09-01"
-attr(tstat_key, 'documents') <- c('2019.08', '2019.07','2019.06')
+                              target = month(docvars(nyt_dfm, 'MonthYear')) >= "2019-09-01")
+attr(tstat_key, 'documents') <- c('2019-07-01', '2019-08-01','2019-09-01')
 
 textplot_keyness(tstat_key)
