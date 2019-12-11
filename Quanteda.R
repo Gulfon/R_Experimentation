@@ -210,3 +210,6 @@ tstat_key <- textstat_keyness(nyt_dfm,
 attr(tstat_key, 'documents') <- c('2019-07-01', '2019-08-01','2019-09-01')
 
 textplot_keyness(tstat_key)
+
+# Chinese Data ----
+
