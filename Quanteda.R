@@ -119,7 +119,7 @@ ntok <- tokens_remove(ntok, pattern = stopwords('en'))
 ntok <- tokens_remove(ntok, pattern = c("Hong","Kong","KONG","HONG","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"))
 context_keyword <- kwic(ntok, pattern = "elect*", window = 3)
 context_keywords <- kwic(ntok, pattern = c("elect*","victor*"), window = 3)
-context_pattern <- kwic(ntok, pattern = phrase('Junius Ho*'), window = 7)
+context_pattern <- kwic(ntok, pattern = phrase('Carrie Lam*'), window = 7)
 #Removal of tokens changes the lengths of documents, but they remain the same if you set padding = TRUE. This option is useful especially when you perform positional analysis.
 multiword <- kwic(ntok, pattern = phrase(c("Junius Ho","Joshua Wong")))
 head(multiword)
@@ -134,7 +134,7 @@ head(toks_ngram)
 
 nyt_dfm <- dfm(ntok)
 
-head(featnames(nyt_dfm), 20)
+head(featnames(nyt_dfm))
 
 topfeatures(nyt_dfm)
 
@@ -207,7 +207,7 @@ plot(clust, xlab = "Distance", ylab = NULL)
 
 tstat_key <- textstat_keyness(nyt_dfm, 
                               target = month(docvars(nyt_dfm, 'MonthYear')) >= "2019-09-01")
-attr(tstat_key, 'documents') <- c('2019-07-01', '2019-08-01','2019-09-01')
+attr(tstat_key, 'documents') <- c('2019-06-01', '2019-07-01','2019-08-01')
 
 textplot_keyness(tstat_key)
 
@@ -250,7 +250,7 @@ textplot_wordcloud(CN_dfm, min_count = 25, random_order = FALSE,
 
 
 # fcm within the window size of 5
-ch10_corp <- corpus_subset(CNcorpus, MonthYear > "2017-10-01")
+ch10_corp <- corpus_subset(CNcorpus, MonthYear >= "2017-11-01")
 ch10_toks <- 
   tokens(ch10_corp, remove_punct = TRUE) %>% 
   tokens_remove(CN_stop)
@@ -259,7 +259,7 @@ topfeatures(ch_fcm["暴力", ])
 
 # collocations
 
-cn_col <- textstat_collocations(CNtok, size = 2:4, min_count = 20)
+cn_col <- textstat_collocations(CNtok, size = 2:4, min_count = 15)
 knitr::kable(head(cn_col, 10))
 
 # bigrams since october
