@@ -39,40 +39,33 @@ library(zoo)
 
 # Data Preparation ----
 
-nyt <- read.csv("NYTHK.csv", header = FALSE, encoding = "UTF-8")
+nyt <- read.csv("nyt.csv", encoding = "UTF-8")
+guardian <- read.csv("guardian.csv", encoding = "UTF-8")
+hkfp <- read.csv("hkfp.csv", encoding = "UTF-8")
 
-guardian_data <- subset(guardian_data, select = - c(V1,V3))
-
-nyt_data3 <- subset(nyt_data3, select = - c(V1,V3))
-
-nyt_data3 <- nyt_data2[grepl(c("World","U.S.","Opinion","Business Day","Briefing"), nyt_data2$V3),]
+nyt_data <- nyt[grepl(c("World","U.S.","Opinion","Business Day","Briefing"), nyt$Section),] %>% 
+  subset(select = - c(Section))
+nyt_data <- as_tibble(nyt_data)
 
 
-guardian <- as_tibble(guardian_data) 
-guardian %>% dplyr::rename(
-  Title = V2,
-  Link = V4,
-  Date = V5,
-  Text = V6
-)
+guardian_data <- subset(guardian, select = - c(Section))
+guardian_data <- as_tibble(guardian_data)
 
-nyt <- as_tibble(nyt_data3)
-nyt <- nyt %>% rename(
-  Title = V2,
-  Link = V4,
-  Date = V5,
-  Text = V6)
+hkfp_data <- as_tibble(hkfp)
 
-hdaily <- as_tibble(headline_data)
-hdaily <- hdaily %>% rename(
-  Title = V1,
-  Link = V2,
-  Date = V3,
-  Text = Articles)
 
-write.csv(guardian, "guardian.csv")
-write.csv(nyt, "nyt.csv")
-write.csv(hdaily,"hdaily.csv")
+
+
+#hdaily <- as_tibble(headline_data)
+#hdaily <- hdaily %>% rename(
+ # Title = V1,
+  #Link = V2,
+  #Date = V3,
+  #Text = Articles)
+
+#write.csv(guardian, "guardian.csv")
+#write.csv(nyt, "nyt.csv")
+#write.csv(hdaily,"hdaily.csv")
 
 
 
@@ -83,79 +76,104 @@ write.csv(hdaily,"hdaily.csv")
 
 
 
-guardian$Date
-GMonthYear <- as.yearmon(guardian$Date)
-guardian2 <- guardian 
-
-nyt$MonthYear <- as.yearmon(nyt$Date)
-guardian$MonthYear <- as.yearmon(guardian$Date)
-hdaily$MonthYear <- as.yearmon(hdaily$Date)
-
-head(hdaily)
-head(nyt)
-head(guardian)
 
 
 
-as.yearmon(guardian$Date[1])
+nyt_data$MonthYear <- as.yearmon(nyt_data$Date)
+guardian_data$MonthYear <- as.yearmon(guardian_data$Date)
+hkfp_data$MonthYear <- as.yearmon(hkfp_data$Date)
+
+nyt_data$Date <- as.Date(nyt_data$Date)
+guardian_data$Date <- as.Date(guardian_data$Date)
+hkfp_data$Date <- as.Date(hkfp_data$Date)
+
+nyt_data$Titles <- as.character(nyt_data$Titles)
+guardian_data$Titles <- as.character(guardian_data$Titles)
+hkfp_data$Titles <- as.character(hkfp_data$Titles)
+
+nyt_data$Article <- as.character(nyt_data$Article)
+guardian_data$Article <- as.character(guardian_data$Article)
+hkfp_data$Article <- as.character(hkfp_data$Article)
+
+
+head(nyt_data)
+head(guardian_data)
+head(hkfp_data)
+
+hkfp_data <- hkfp_data %>% rename(
+  Newspaper = Newspaper,
+  Titles = Titles,
+  Link = Links,
+  Date = Dates,
+  Article = Articles)
+
+head(news_data)
+
+# Basic Frequency Analysis ----
+
+freq(news_data$Newspaper)
+freq(news_data$MonthYear)
+freq(news_data$Date)
+
+
+
 # Corpus ----
+news_data$MonthYear <- as.Date(news_data$MonthYear)
 
-nyt2 <- nyt[order(nyt$Date),] 
-nyt2$MonthYear <- as.Date(nyt2$MonthYear)
-nyt2$Date <- as.Date(nyt2$Date)
-nyt2$Text <- as.character(nyt2$Text)
-
-
-ncorpus <- corpus(nyt2,text_field = "Text")
+ncorpus <- corpus(news_data,text_field = "Article")
 head(docvars(ncorpus))
 
-
-ncorp_docs <- corpus_reshape(ncorpus, to = "sentences")
-ncorp_docs <- corpus_reshape(ncorp_docs, to = "documents")
+ncorp_docs <- corpus_reshape(ncorpus, to = "documents")
 
 # Tokens ----
-ntok <- tokens(ncorp_docs, remove_punct = TRUE)
+ntok <- tokens(ncorpus, remove_punct = TRUE)
 ntok <- tokens_remove(ntok, pattern = stopwords('en'))
-ntok <- tokens_remove(ntok, pattern = c("Hong","Kong","KONG","HONG","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"))
+ntok <- tokens_remove(ntok, pattern = c("Hong","Kong","KONG","HONG","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Free","Press","hong","kong's"))
 context_keyword <- kwic(ntok, pattern = "elect*", window = 3)
 context_keywords <- kwic(ntok, pattern = c("elect*","victor*"), window = 3)
 context_pattern <- kwic(ntok, pattern = phrase('Carrie Lam*'), window = 7)
 #Removal of tokens changes the lengths of documents, but they remain the same if you set padding = TRUE. This option is useful especially when you perform positional analysis.
-multiword <- kwic(ntok, pattern = phrase(c("Junius Ho","Joshua Wong")))
+multiword <- kwic(ntok, pattern = phrase(c("Junius Ho","Joshua Wong","Carrie Lam","Xi Jinping")))
 head(multiword)
 #To preserve these expressions in bag-of-word analysis, you have to compound them using tokens_compound().
-toks_comp <- tokens_compound(ntok_nostop, pattern = phrase(c("Junius Ho","Joshua Wong")))
-kw_comp <- kwic(toks_comp, pattern = c("Junius_Ho","Joshua_Wong"))
-head(kw_comp, 10)
+toks_comp <- tokens_compound(ntok, pattern = phrase(c("Junius Ho","Joshua Wong","Carrie Lam","Xi Jinping")))
+kw_comp <- kwic(toks_comp, pattern = c("Junius_Ho","Joshua_Wong","Carrie_Lam","Xi_Jinping"))
+head(kw_comp, 50)
 #Can also generate ngrams
-toks_ngram <- tokens_ngrams(ntok_clean, n = 2)
+toks_ngram <- tokens_ngrams(ntok, n = 2)
 head(toks_ngram)
 # DFM ----
 
-nyt_dfm <- dfm(ntok)
+ndfm <- dfm(ntok)
 
-head(featnames(nyt_dfm))
+head(featnames(ndfm))
 
-topfeatures(nyt_dfm)
+topfeatures(ndfm)
 
 
 #You can also select features based on the length of features.
-nyt_dfm_long <- dfm_select(nyt_dfm, min_nchar = 5)
-nfeat(nyt_dfm_long)
-
+ndfm_long <- dfm_select(ndfm, min_nchar = 5)
+nfeat(ndfm_long)
+topfeatures(ndfm_long)
 
 #While dfm_select() selects features based on patterns, dfm_trim() does this based on feature frequencies. If min_termfreq = 10, features that occur less than 10 times in the corpus are removed.
-nyt_dfm_freq <- dfm_trim(nyt_dfm, min_termfreq = 20)
-nfeat(nyt_dfm_freq)
-head(nyt_dfm_freq)
+ndfm_freq <- dfm_trim(ndfm, min_termfreq = 50)
+nfeat(ndfm_freq)
+topfeatures(ndfm_freq)
+
+dfm_select(ndfm_freq, min_nchar = 5)
 
 #If max_docfreq = 0.1, features that occur in more than 10% of the documents are removed.
-nyt_dfm_docfreq <- dfm_trim(nyt_dfm, max_docfreq = 0.01, docfreq_type = "prop")
-nfeat(nyt_dfm_docfreq)
+ndfm_docfreq <- dfm_trim(ndfm, max_docfreq = 0.5, docfreq_type = "prop")
+nfeat(ndfm_docfreq)
+topfeatures(dfm_select(ndfm_docfreq, min_nchar = 5))
+
 
 # Feature Co-Occurence Matrix ---- 
 
-feat <- fcm(nyt_dfm_freq)
+
+
+feat <- fcm(dfm_select(ndfm_freq, min_nchar = 5))
 feats <- names(topfeatures(feat, 300))
 
 feat_select <- fcm_select(feat, pattern = feats)
@@ -171,7 +189,9 @@ textplot_network(feat_select, vertex_size = size/max(size)*3)
 
 # Statistical Analysis ---- 
 
-nyt_dfm %>% 
+stdfm <- dfm(ntok, remove = stopwords("english"),remove_punct = TRUE) %>% dfm_select(min_nchar = 5)
+
+stdfm %>% 
   textstat_frequency(n = 15) %>% 
   ggplot(aes(x = reorder(feature, frequency), y = frequency)) +
   geom_point() +
@@ -181,22 +201,22 @@ nyt_dfm %>%
 
 set.seed(132)
 
-textplot_wordcloud(nyt_dfm, max_words = 100)
+textplot_wordcloud(stdfm, max_words = 300, min_count = 20)
 
 # Lexical Diversity ----
-summary(ncorp_docs,5)
+summary(ncorpus,5)
 
-tstat_lexdiv <- textstat_lexdiv(nyt_dfm)
+tstat_lexdiv <- textstat_lexdiv(ndfm)
 tail(tstat_lexdiv, 5)
 
 plot(tstat_lexdiv$TTR, type = 'l', xaxt = 'n', xlab = NULL, ylab = "TTR")
 grid()
-axis(1, at = seq_len(nrow(tstat_lexdiv)), labels = docvars(nyt_dfm, ('MonthYear')))
+axis(1, at = seq_len(nrow(tstat_lexdiv)), labels = docvars(ndfm, ('MonthYear')))
 
 
 # Document/Feature Similarity ----
 
-tstat_dist <- as.dist(textstat_dist(nyt_dfm))
+tstat_dist <- as.dist(textstat_dist(ndfm))
 clust <- hclust(tstat_dist)
 plot(clust, xlab = "Distance", ylab = NULL)
 
@@ -205,9 +225,9 @@ plot(clust, xlab = "Distance", ylab = NULL)
 
 
 
-tstat_key <- textstat_keyness(nyt_dfm, 
-                              target = month(docvars(nyt_dfm, 'MonthYear')) >= "2019-09-01")
-attr(tstat_key, 'documents') <- c('2019-06-01', '2019-07-01','2019-08-01')
+tstat_key <- textstat_keyness(stdfm, 
+                              target = month(docvars(stdfm, 'MonthYear')) <= "2019-12-01")
+attr(tstat_key, 'documents') <- c("2020-01-01")
 
 textplot_keyness(tstat_key)
 
