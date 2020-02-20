@@ -877,7 +877,7 @@ ui <- fluidPage(
                                      label = "Simple Frequency")
                         
                       ),
-                      mainPanel(tableOutput("test"))
+                      mainPanel(plotOutput("test"))
                       )
              
              
@@ -1024,7 +1024,7 @@ server <- function(input, output, session) {
   observeEvent(input$clean,{
     cleaned_data <- as_tibble(datasetInput())
     cleaned_data$MonthYear <- as.yearmon(cleaned_data$Date)
-    output$test <- renderTable(cleaned_data)
+    output$test <- renderPlot(plot(cleaned_data$MonthYear))
   })
    
   observeEvent(input$freq,{
