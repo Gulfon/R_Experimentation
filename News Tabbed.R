@@ -1,43 +1,16 @@
 # Loading Libraries & Functions ----
 
-library(dplyr)
-library(desc)
-library(quanteda)
-library(geometry)
-library(readtext)
-library(quanteda.corpora)
-library(rsvd)
-library(spacyr)
-library(igraph)
-library(ggplot2)
-library(tidyverse)
-library(lubridate)
-library(newsmap)
-library(descr)
-library(psych)
-library(parsedate)
-library(stm)
-library(Rtsne)
-library(rio)
-library(rtweet)
-library(topicmodels)
-library(zoo)
-library(XML)
-library(rvest)
-library(htmltools)
-library(RCurl)
-library(shinyjs)
-library(shiny)
-library(jsonlite)
-library(dplyr)
-library(stringr)
-library(shinythemes)
-library(shinydashboard)
-library(readr)
-library(stringr)
-library(purrr)
 
 
+packages <- c("dplyr", "desc", "quanteda", "geometry", "readtext",
+   "quanteda.corpora", "rsvd", "spacyr", "igraph", "ggplot2",
+   "tidyverse", "lubridate", 'newsmap', 'descr', 'psych',
+   'parsedate', "stm", "Rtsne", "rio", 'rtweet', 'topicmodels',
+   'zoo', 'XML', 'rvest', 'htmltools', 'RCurl', 'shinyjs', 'shiny',
+   'jsonlite', 'dplyr', 'stringr', "shinythemes", "shinydashboard", "readr", "stringr", "purrr")
+
+lapply(packages, library, character.only = TRUE)
+ 
 
 ###Guardian API: "b80008a9-a43c-4047-a0ad-47f0cd8efb20"
 ###NYTIMES_API <- "KCOgDvSOdjGOQeF0kfQJ7Ch4IqMhEG42"
