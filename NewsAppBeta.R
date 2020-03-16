@@ -14,187 +14,227 @@ library(shinydashboard)
 library(readr)
 library(stringr)
 library(purrr)
-
-
+library(tidyverse)
+library(tibble)
 
 ###Guardian API: "b80008a9-a43c-4047-a0ad-47f0cd8efb20"
 ###NYTIMES_API <- "KCOgDvSOdjGOQeF0kfQJ7Ch4IqMhEG42"
 ###newsapi <- "0017f268ff0b414bbb505d701dddacb0"
 
-FinancialTimesFunction <-
-  function(x,
-           y,
-           z) {
-    basiclink <- "https://www.ft.com/search?q="
-    sorted <- "&sort=date"
-    pageslink <- paste0(basiclink,
-                        URLencode(x),
-                        "&dateFrom=",
-                        y,
-                        "&dateTo=",
-                        z,
-                        sorted)
-    FTread <- read_html(pageslink)
-    FT_Prime <- FTread %>%
-      html_nodes(xpath = '//*[@id="site-content"]/div/div[*]/div/span/text()[2]') %>%
-      html_text()
-    if (length(FT_Prime) == 0){
-      return(paste0("No Result, Please Modify Search Parameters"))
-    }
-    FT_Pages <- FT_Prime
-    Pages <- parse_number(FT_Pages)
-    FTtitle <- list()
-    FTlink <- list()
-    FTdate <- list()
-    FTarticle <- vector()
-    Newspaper <- vector()
-    hits <- Pages * 25
-    if (hits > 1000) {
-      message(
-        " ...This search resulted in ",
-        hits,
-        " articles. Financial times will only display 1000 results per query. Use multiple queries to get more results... "
-      )
-      Pages <- 40
-    }
-    message(" ...Now scraping ", Pages, " pages ", " and ", Pages*25, " articles... ")
-    for (i in 1:Pages) {
-      Link <-
-        paste0(basiclink,
-               URLencode(x),
-               "&page=",
-               i,
-               "&dateFrom=",
-               y,
-               "&dateTo=",
-               z,
-               sorted)
-      FTread <- read_html(Link)
-      
-      FTtitle[[i]] <- FTread %>%
-        html_nodes(xpath = '//*[@id="site-content"]/div/ul/li[*]/div/div/div/div[1]/div[2]/a') %>%
-        html_text()
-      
-      FTlink[[i]] <- FTread %>%
-        html_nodes(xpath = '//*[@id="site-content"]/div/ul/li[*]/div/div/div/div[1]/div[2]/a') %>%
-        html_attr("href")
-      
-      FTdate[[i]] <- FTread %>%
-        html_nodes(xpath = '//*[@id="site-content"]/div/ul/li[*]/div/div/div/div[1]/div[3]/time') %>%
-        html_attr("datetime")
-      Sys.sleep(.25)
-      message(" ...Working on Page ", i,"... ")
-      
-    }
+
+ft_function <- function(query, from_date, to_date) {
+  
+  message("...WARNING...Financial Times Function is unlikely to return full texts...")
+  
+  # Prerequisites ----
+  
+  base_link <- "https://www.ft.com/search?q="
+  
+  sort <- "&sort=date"
+  
+  query_link <- paste0(base_link,
+                       URLencode(query),
+                       "&dateFrom=",
+                       from_date,
+                       "&dateTo=",
+                       to_date,
+                       sort)
+  link_read <- read_html(query_link)
+  
+  page_num <- link_read %>%
+    html_nodes(xpath = '//*[@id="site-content"]/div/div[*]/div/span/text()[2]') %>%
+    html_text() %>%
+    parse_number()
+  
+  if (length(page_num) == 0){
+    return(paste0("...No Result, Please Modify Search Parameters..."))
     
-    FTDatasetTest <-
-      as.data.frame(cbind(Newspaper,unlist(FTtitle), unlist(FTlink), unlist(FTdate)), stringsAsFactors = FALSE)
-    
-    
-    for (i in 1:length(FTDatasetTest$V2)) {
-      if (str_detect(FTDatasetTest$V2[i], c("content|video")) == TRUE) {
-        FTDatasetTest$V2[i] <-
-          paste0("https://www.ft.com", FTDatasetTest$V2[i])
-      }
-      
-      if (str_detect(FTDatasetTest$V2[i], "content") == TRUE) {
-        FT_Article_Read <- read_html(FTDatasetTest$V2[i])
-        message("...Gathering Article #", i)
-        Text <- FT_Article_Read %>%
-          html_nodes(xpath = '//*[@id="site-content"]/div[3]/div[2]') %>%
-          html_text()
-        if (length(Text) != 0){ FTarticle[i] <- Text} else {
-          FTarticle[i] <- "NA"
-        }
-        
-        Sys.sleep(.3)
-      } else {
-        FTarticle[i] <-
-          "MANUAL"
-        message(
-          " ...This is not a standard article page, please check this link manually: ",
-          FTDatasetTest$V2[i]," ... "
-        )
-      }
-      
-    }
-    for (n in 1:length(FTarticle)) {
-      Newspaper[n] <- "Financial Times"
-    }
-    FTDatasetTest <-
-      as.data.frame(cbind(Newspaper, FTDatasetTest, FTarticle), stringsAsFactors = FALSE)
-    colnames(FTDatasetTest) <- c("Newspaper", "Titles","Link","Date","Article")
-    FTDatasetTest
   }
+  
+  
+  # Creating Containers ----
+  
+  title <- list()
+  link <- list()
+  date <- list()
+  article <- vector()
+  newspaper <- vector()
+  
+  
+  # Data Collection & Status Messages [No Articles] ----
+  
+  hits <- page_num * 25  
+  
+  if (hits > 1000) {
+    message(
+      "...This search resulted in ",
+      hits,
+      " articles. Financial times will only display 1000 results per query. Use multiple queries to get more results... "
+    )
+    page_num <- 40
+  }
+  
+  
+  message("...Now scraping ", page_num, " pages", " and up to ", page_num*25, " articles... ")
+  for (i in 1:page_num) {
+    
+    link_read <- read_html(paste0(base_link,
+                                  URLencode(query),
+                                  "&page=",
+                                  i,
+                                  "&dateFrom=",
+                                  from_date,
+                                  "&dateTo=",
+                                  to_date,
+                                  sort))
+    
+    
+    title[[i]] <- link_read %>%
+      html_nodes(xpath = '//*[@id="site-content"]/div/ul/li[*]/div/div/div/div[1]/div[2]/a') %>%
+      html_text()
+    
+    
+    link[[i]] <- link_read %>%
+      html_nodes(xpath = '//*[@id="site-content"]/div/ul/li[*]/div/div/div/div[1]/div[2]/a') %>%
+      html_attr("href")
+    
+    
+    date[[i]] <- link_read %>%
+      html_nodes(xpath = '//*[@id="site-content"]/div/ul/li[*]/div/div/div/div[1]/div[3]/time') %>%
+      html_attr("datetime")
+    
+    Sys.sleep(.3)
+    
+    message("...Working on Page ", i,"... ")
+    
+  }
+  
+  
+  news_data_frame <- tibble(title = unlist(title), link = unlist(link), date = unlist(date))
+  
+  # Collecting Article ----
+  
+  for (i in 1:length(news_data_frame$link)) {
+    
+    if (str_detect(news_data_frame$link[i], c("content|video")) == TRUE) {
+      news_data_frame$link[i] <-
+        paste0("https://www.ft.com", news_data_frame$link[i])
+    
+      }
+    
+    if (str_detect(news_data_frame$link[i], "content") == TRUE) {
+      
+      article_read <- read_html(news_data_frame$link[i])
+      message("...Gathering Article #", i, "...")
+      text <- article_read %>%
+        html_nodes(xpath = '//*[@id="site-content"]/div[3]/div[2]') %>%
+        html_text()
+      if (length(text) != 0){ article[i] <- text} else {
+        article[i] <- "NA"
+      
+        }
+      
+      Sys.sleep(.3)
+    
+      } else {
+      
+        article[i] <-
+        "MANUAL"
+      message(
+        "...This is not a standard article page, please check this link manually: ",
+        news_data_frame$link[i]," ... "
+      )
+    
+      }
+  }
+  
+  # Creating Newspaper Column ---- 
+  
+  for (n in 1:length(article)) {
+    newspaper[n] <- "Financial Times"
+  }
+  
+  # Preparting Data for Download ----
+  
+  news_data_frame <- add_column(news_data_frame, newspaper = newspaper, article = article) %>%
+    select(newspaper, title, link, date, article)
+  
+  message("...Scraping complete! Once the table appears, please press the download button for a .csv file...")
+  
+  news_data_frame
+  
+}
 
-
-GuardianFunction <-
-  function(x = "2014-01-01",
-           y = "2019-12-31",
-           i = "Hong%20Kong",
-           z = "Your API Key") {
+guardian_function <- function(from_date, to_date, query, api) {
+  
     # Prerequisites ----
-    GBase <-
-      "https://content.guardianapis.com/search?section=world&show-fields=bodyText&q="
-    From <- "&from-date="
-    To <- "&to-date="
-    Page <- "&page="
-    Blocks <- "&show-blocks=all"
-    url <-
-      paste0(GBase, i, From, x, To, y, Page, "1", "&api-key=", z)
-    tt <- fromJSON(url)
-    Newspaper <- list()
-    Titles <- list()
-    SectionName <- list()
-    PublicationDate <- list()
-    URL <- list()
-    FullText <- list()
+    
+    base_link <- "https://content.guardianapis.com/search?section=world&show-fields=bodyText&q="
+    from <- "&from-date="
+    to <- "&to-date="
+    page <- "&page="
+    
+    
+    url <- paste0(base_link, query, from, from_date, to, to_date, page, "1", "&api-key=", api)
+    
+    guardian_json <- fromJSON(url)
+    
+    # Creating Containers ----
+    newspaper <- list()
+    title <- list()
+    section <- list()
+    date <- list()
+    link <- list()
+    article <- list()
     
     # Status Messages ----
-    message("Collecting Articles About ", i, "...")
-    message("Total Pages ", tt[["response"]][["pages"]], "...")
-    message("Completion in ", (tt[["response"]][["pages"]] + 30) / 60, " minutes", "...")
+    message("...Collecting articles about ", URLdecode(query), "...")
+    message("...Total Pages: ", guardian_json[["response"]][["pages"]], "...")
+    message("...Completion in ", ceiling((guardian_json[["response"]][["pages"]] + 30) / 60), " minutes", "...")
     
     # Data Collection ----
-    for (t in 1:tt[["response"]][["pages"]]) {
-      message("Gathering Page ", t, "/", tt[["response"]][["pages"]], "...")
-      url1 <-
-        paste0(GBase, i, From, x, To, y, Page, t, "&api-key=", z)
-      json <- fromJSON(url1)
-      Titles[[t]] <- json[["response"]][["results"]][["webTitle"]]
-      SectionName[[t]] <-
-        json[["response"]][["results"]][["sectionName"]]
-      URL[[t]] <- json[["response"]][["results"]][["webUrl"]]
-      FullText[[t]] <-
-        trimws(json[["response"]][["results"]][["fields"]][["bodyText"]])
-      PublicationDate[[t]] <-
-        json[["response"]][["results"]][["webPublicationDate"]]
+    for (page_num in 1:guardian_json[["response"]][["pages"]]) {
+      
+      message("...Gathering page ", page_num, "/", guardian_json[["response"]][["pages"]], "...")
+      
+      page_url <- paste0(base_link, query, from, from_date, to, to_date, page, page_num, "&api-key=", api)
+      
+      page_json <- fromJSON(page_url)
+      
+      title[[page_num]] <- page_json[["response"]][["results"]][["webTitle"]]
+      
+      section[[page_num]] <-
+        page_json[["response"]][["results"]][["sectionName"]]
+      
+      link[[page_num]] <- page_json[["response"]][["results"]][["webUrl"]]
+      
+      article[[page_num]] <-
+        trimws(page_json[["response"]][["results"]][["fields"]][["bodyText"]])
+      
+      date[[page_num]] <-
+        page_json[["response"]][["results"]][["webPublicationDate"]]
+      
       Sys.sleep(.3)
     }
     
     # Newspaper Column ----
-    for (n in 1:length(unlist(Titles))) {
-      Newspaper[[n]] <- "Guardian"
+    for (n in 1:length(unlist(title))) {
+      newspaper[[n]] <- "Guardian"
     }
     
-    # Constructing the Table ----
-    Table1 <- cbind(
-      unlist(Newspaper),
-      unlist(Titles),
-      unlist(SectionName),
-      unlist(URL),
-      unlist(PublicationDate),
-      unlist(FullText)
-    )
-    Table1 <- as.data.frame(Table1)
-    colnames(Table1) <- c("Newspaper", "Titles","Section","Link","Date","Article")
-    message("READY FOR DOWNLOAD")
-    Table1
+    # Preparing Data data for download ----
+    news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date), article = unlist(article), section = unlist(section))
+    
+    message("...Scraping complete! Please press the download button for a .csv file...")
+    
+    news_data_frame
+    
+    
   }
 
 TimesFunction <-
-  function(x = 20140101,
-           y = 20191231,
+  function(from_date = 20140101,
+           to_date = 20191231,
            i = "Hong%20Kong",
            z = "Your API Key") {
     # Prerequisites ----
@@ -204,9 +244,9 @@ TimesFunction <-
         "http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",
         i,
         "&begin_date=",
-        x,
+        from_date,
         "&end_date=",
-        y,
+        to_date,
         "&facet_filter=true&api-key=",
         z
       )
@@ -244,9 +284,9 @@ TimesFunction <-
           "http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",
           i,
           "&begin_date=",
-          x,
+          from_date,
           "&end_date=",
-          y,
+          to_date,
           "&page=",
           t,
           "&facet_filter=true&api-key=",
@@ -286,7 +326,7 @@ TimesFunction <-
     # Newspaper Column ----
     
     for (n in 1:length(unlist(Titles))) {
-      Newspaper[[n]] <- "New York Times"
+      newspaper[[n]] <- "New York Times"
     }
     
     # Constructing the Table ----
@@ -301,7 +341,7 @@ TimesFunction <-
       )
     Table1 <- as.data.frame(Table1)
     colnames(Table1) <- c("Newspaper", "Titles","Section","Link","Date","Article")
-    message("READY FOR DOWNLOAD")
+    message("...Scraping complete! Please press the download button for a .csv file...")
     Table1
   }
 
@@ -600,6 +640,10 @@ HeadlineDailyFunction <-
     Dataseting <-
       as.data.frame(cbind(Newspaper, Dataseting, Articles), stringsAsFactors = FALSE)
     colnames(Dataseting) <- c("Newspaper","Titles", "Links","Dates","Articles")
+    
+    
+    
+    
     Dataseting
   }
 
@@ -851,11 +895,11 @@ server <- function(input, output, session) {
   datasetInput <- reactive({
     switch(
       input$dataset,
-      "Guardian" = GuardianFunction(
-        x = input$start1,
-        y = input$end1,
-        i = URLencode(input$query),
-        z = input$APIG
+      "Guardian" = guardian_function(
+        from_date = input$start1,
+        to_date = input$end1,
+        query = URLencode(input$query),
+        api = input$APIG
       ),
       "New York Times" = TimesFunction(
         i = URLencode(input$query),
@@ -877,10 +921,10 @@ server <- function(input, output, session) {
         api = input$NAPIP,
         sources = input$sources
       ),
-      "Financial Times" = FinancialTimesFunction(
-        y = input$start4,
-        z = input$end4,
-        x = input$query
+      "Financial Times" = ft_function(
+        from_date = input$start4,
+        to_date = input$end4,
+        query = input$query
       ),
       "Headline Daily" = HeadlineDailyFunction(
         x = URLencode(input$query),
