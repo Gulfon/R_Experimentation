@@ -204,7 +204,7 @@ guardian_function <- function(from_date, to_date, query, api) {
       title[[page_num]] <- page_json[["response"]][["results"]][["webTitle"]]
       
       section[[page_num]] <-
-        page_json[["response"]][["results"]][["sectionName"]]
+        page_json[["response"]][["results"]][["section"]]
       
       link[[page_num]] <- page_json[["response"]][["results"]][["webUrl"]]
       
@@ -232,117 +232,105 @@ guardian_function <- function(from_date, to_date, query, api) {
     
   }
 
-TimesFunction <-
-  function(from_date = 20140101,
-           to_date = 20191231,
-           i = "Hong%20Kong",
-           z = "Your API Key") {
+nyt_function <-
+  function(from_date, to_date, query, api) {
     # Prerequisites ----
     
-    url <-
-      paste0(
-        "http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",
-        i,
-        "&begin_date=",
-        from_date,
-        "&end_date=",
-        to_date,
-        "&facet_filter=true&api-key=",
-        z
+    base_link <- paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",
+        query, "&begin_date=",
+        from_date, "&end_date=",
+        to_date, "&facet_filter=true&api-key=", api
       )
-    initialQuery <- fromJSON(url)
-    maxPages <- ceiling(initialQuery$response$meta$hits[1] / 10)
-    if (maxPages > 200) {
-      message("You're trying to gather ", maxPages, "pages.")
-      maxPages <- 200
-      message(".....NYT API Allows for 200 Pages Before Kicking you Out....")
+    
+    nyt_json <- fromJSON(base_link)
+    pages <- ceiling(nyt_json$response$meta$hits[1] / 10)
+    if (pages > 200) {
+      message("...You're trying to gather ", pages, "pages...")
+      pages <- 200
+      message("...NYT API Allows for 200 Pages Before Kicking you Out...")
     } else {
-      maxPages <- maxPages
+      pages <- pages
     }
     
     # Status Messages ----
     
-    message("Collecting Articles About ", i, "...")
-    message("Total Pages: ", maxPages, "...")
-    message("Completion in ", (maxPages * 6 + 120) / 60, " minutes", "...")
+    message("...Collecting Articles About ", URLdecode(query) , "...")
+    message("...Total Pages: ", pages, "...")
+    message("...Completion in ", ceiling((pages * 6 + 120) / 60), " minutes", "...")
     
     # Containers ----
     
-    Newspaper <- list()
-    Titles <- list()
-    SectionName <- list()
-    PublicationDate <- list()
-    URL <- list()
-    Snippet <- list()
-    FullArticle <- vector()
+    newspaper <- list()
+    title <- list()
+    section <- list()
+    date <- list()
+    link <- list()
+    article <- vector()
     
     # Data Collection (Pages) ----
     
-    for (t in 1:maxPages) {
-      url <-
-        paste0(
-          "http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",
-          i,
-          "&begin_date=",
-          from_date,
-          "&end_date=",
-          to_date,
-          "&page=",
-          t,
-          "&facet_filter=true&api-key=",
-          z
-        )
-      json <- fromJSON(url)#Constructing the url
-      message("Retrieving Page ", t, "/", maxPages)
-      Titles[[t]] <-
-        json[["response"]][["docs"]][["headline"]][["main"]]
-      SectionName[[t]] <-
-        json[["response"]][["docs"]][["section_name"]]
-      URL[[t]] <- json[["response"]][["docs"]][["web_url"]]
-      PublicationDate[[t]] <-
-        json[["response"]][["docs"]][["pub_date"]]
+    for (page in 1:pages) {
+      page_link <-
+        paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=", query,
+          "&begin_date=", from_date,
+          "&end_date=", to_date,
+          "&page=",page,
+          "&facet_filter=true&api-key=", api)
+      
+      page_json <- fromJSON(page_link)#Constructing the url
+      
+      message("...Gathering page ", page, "/", pages,"...")
+      
+      title[[page]] <- page_json[["response"]][["docs"]][["headline"]][["main"]]
+      
+      section[[page]] <- page_json[["response"]][["docs"]][["section_name"]]
+      
+      link[[page]] <- page_json[["response"]][["docs"]][["web_url"]]
+      
+      date[[page]] <- page_json[["response"]][["docs"]][["pub_date"]]
+      
       Sys.sleep(6) #Waiting to ensure that the Api doesn't kick us out
     }
-    LinkPrerp <- unlist(URL)
+    
+    article_prep <- unlist(link)
+    
+    
+    
     # Data Collection (Articles) ----
     
-    for (n in 1:length(LinkPrerp)) {
-      if (str_detect(LinkPrerp[n], c("video")) == FALSE) {
-        step1 <- read_html(LinkPrerp[n])
-        news_html <- htmlParse(step1)
-        #ttext <-  tryCatch(trimws(unlist(xpathSApply(news_html, '//*[@id="story"]/section/div', xmlValue),error = function(e){NA})))
+    for (n in 1:length(article_prep)) {
+      
+      if (str_detect(article_prep[n], c("video")) == FALSE) {
         
-        catching <- unlist(xpathSApply(news_html, path = '//*[@id="story"]/section/div', xmlValue))
-        FullArticle[n] <- paste(trimws(catching), collapse = "")
+        get_link <- read_html(article_prep[n])
+        parse_link <- htmlParse(get_link)
+
+        catching <- unlist(xpathSApply(parse_link, path = '//*[@id="story"]/section/div', xmlValue))
+        article[n] <- paste(trimws(catching), collapse = "")
       } else {
-        FullArticle[n] <- NA
+        article[n] <- NA
       }
       
       
-      message("Article ", n, "/", length(LinkPrerp), " Retrieved", "...")
+      message("...Article ", n, "/", length(article_prep), " Retrieved", "...")
+      
       Sys.sleep(.2)
     }
     
     # Newspaper Column ----
     
-    for (n in 1:length(unlist(Titles))) {
+    for (n in 1:length(unlist(title))) {
       newspaper[[n]] <- "New York Times"
     }
     
     # Constructing the Table ----
-    Table1 <-
-      cbind(
-        unlist(Newspaper),
-        unlist(Titles),
-        unlist(SectionName),
-        unlist(URL),
-        unlist(PublicationDate),
-        unlist(FullArticle)
-      )
-    Table1 <- as.data.frame(Table1)
-    colnames(Table1) <- c("Newspaper", "Titles","Section","Link","Date","Article")
+    
+    news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date), article = article, section = unlist(section))
+    
     message("...Scraping complete! Please press the download button for a .csv file...")
-    Table1
+    
+    news_data_frame
+
   }
 
 
@@ -448,7 +436,7 @@ NewsAPIEverythingFree <-
         unlist(content)
       )
     framing <- as.data.frame(framing)
-    colnames(Dataseting) <- c("Source","Titles", "Links","Dates","Articles")
+    colnames(Dataseting) <- c("Source","title", "Links","Dates","Articles")
     message("READY FOR DOWNLOAD")
     framing
   }
@@ -554,7 +542,7 @@ NewsAPIEverythingPaid <-
         unlist(content)
       )
     framing <- as.data.frame(framing)
-    colnames(Dataseting) <- c("Source","Titles", "Links","Dates","Articles")
+    colnames(Dataseting) <- c("Source","title", "Links","Dates","Articles")
     message("READY FOR DOWNLOAD")
     framing
   }
@@ -570,7 +558,7 @@ HeadlineDailyFunction <-
       html_text(trim = TRUE) %>% parse_number()
     
     Pages <- ceiling(hits / 10)
-    Titles <- list()
+    title <- list()
     Dates <- list()
     Articles <- vector()
     Links <- list()
@@ -591,7 +579,7 @@ HeadlineDailyFunction <-
         html_text() %>% parse_date() %>% as.character()
       
       
-      Titles[[i]] <- LinkRead %>%
+      title[[i]] <- LinkRead %>%
         html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[1]') %>%
         html_text(trim = TRUE)
       
@@ -604,19 +592,19 @@ HeadlineDailyFunction <-
         for (n in 1:10) {
           if (Dates[[i]][n] < y) {
             Dates[[i]][n] <- NA
-            Titles[[i]][n] <- NA
+            title[[i]][n] <- NA
             Links[[i]][n] <- NA
           }
         }
         Dates[[i]] <- Dates[[i]][!is.na(Dates[[i]])]
-        Titles[[i]] <- Titles[[i]][!is.na(Titles[[i]])]
+        title[[i]] <- title[[i]][!is.na(title[[i]])]
         Links[[i]] <- Links[[i]][!is.na(Links[[i]])]
         break
       }
       
     }
     Dataseting <-
-      as.data.frame(cbind(unlist(Titles), unlist(Links), unlist(Dates)), stringsAsFactors = FALSE)
+      as.data.frame(cbind(unlist(title), unlist(Links), unlist(Dates)), stringsAsFactors = FALSE)
     for (i in 1:length(Dataseting$V2)) {
       Dataseting$V2[i] <-
         paste0("http://hd.stheadline.com", Dataseting$V2[i])
@@ -639,7 +627,7 @@ HeadlineDailyFunction <-
     
     Dataseting <-
       as.data.frame(cbind(Newspaper, Dataseting, Articles), stringsAsFactors = FALSE)
-    colnames(Dataseting) <- c("Newspaper","Titles", "Links","Dates","Articles")
+    colnames(Dataseting) <- c("Newspaper","title", "Links","Dates","Articles")
     
     
     
@@ -669,7 +657,7 @@ HKFunctionPress <-
     }
     
     hits <- n*150
-    Titles <- list()
+    title <- list()
     Dates <- list()
     Articles <- vector()
     Links <- list()
@@ -690,7 +678,7 @@ HKFunctionPress <-
         html_text() %>% parse_date(format = "%d %B %Y %H:%M") %>% as.character()
       
       
-      Titles[[i]] <- LinkRead %>%
+      title[[i]] <- LinkRead %>%
         html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[*]/header/h2/a') %>%
         html_text(trim = TRUE) 
       
@@ -704,19 +692,19 @@ HKFunctionPress <-
         for (k in 1:150) {
           if (Dates[[i]][k] < y) {
             Dates[[i]][k] <- NA
-            Titles[[i]][k] <- NA
+            title[[i]][k] <- NA
             Links[[i]][k] <- NA
           }
         }
         Dates[[i]] <- Dates[[i]][!is.na(Dates[[i]])]
-        Titles[[i]] <- Titles[[i]][!is.na(Titles[[i]])]
+        title[[i]] <- title[[i]][!is.na(title[[i]])]
         Links[[i]] <- Links[[i]][!is.na(Links[[i]])]
         break
       }
       
     }
     Dataseting <-
-      as.data.frame(cbind(unlist(Titles), unlist(Links), unlist(Dates)), stringsAsFactors = FALSE)
+      as.data.frame(cbind(unlist(title), unlist(Links), unlist(Dates)), stringsAsFactors = FALSE)
     for (i in 1:length(Dataseting$V2)) {
       Article_Read <- read_html(Dataseting$V2[i])
       message("Gathering Article #", i)
@@ -736,7 +724,7 @@ HKFunctionPress <-
     }
     Dataseting <-
       as.data.frame(cbind(Newspaper,Dataseting, Articles), stringsAsFactors = FALSE)
-    colnames(Dataseting) <- c("Newspaper","Titles", "Links","Dates","Articles")
+    colnames(Dataseting) <- c("Newspaper","title", "Links","Dates","Articles")
     Dataseting
   }
 
@@ -901,11 +889,11 @@ server <- function(input, output, session) {
         query = URLencode(input$query),
         api = input$APIG
       ),
-      "New York Times" = TimesFunction(
-        i = URLencode(input$query),
-        x = input$start2,
-        y = input$end2,
-        z = input$APIN
+      "New York Times" = nyt_function(
+        query = URLencode(input$query),
+        from_date = input$start2,
+        to_date = input$end2,
+        api = input$APIN
       ),
       "NewsAPI Free" = NewsAPIEverythingFree(
         from = input$start3,
