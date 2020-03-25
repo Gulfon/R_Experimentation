@@ -334,305 +334,302 @@ nyt_function <-
   }
 
 
-NewsAPIEverythingFree <-
-  function(query = NULL,
-           qInTitle = NULL,
-           domains = NULL,
-           excludeDomains = NULL,
-           from = NULL,
-           to = NULL,
-           language = NULL,
-           query1 = NULL,
-           sources = NULL,
-           sortBy = NULL,
-           api = NULL) {
+NewsAPIEverythingFree <- function(query = NULL, qInTitle = NULL, domains = NULL, 
+                                  excludeDomains = NULL, from = NULL, to = NULL, 
+                                  language = NULL, query1 = NULL, sources = NULL, 
+                                  sortBy = NULL, api = NULL) {
+    
     if (is.null(sources) == FALSE) {
       sources <- paste0("sources=", sources, "&")
     }
+    
     if (is.null(query) == FALSE) {
       query1 <- paste0("q=", URLencode(query), "&")
     }
+    
     if (is.null(domains) == FALSE) {
       domains <- paste0("domains=", URLencode(domains), "&")
     }
+    
     if (is.null(excludeDomains) == FALSE) {
       excludeDomains <-
         paste0("excludeDomains=", URLencode(excludeDomains), "&")
     }
+    
     if (is.null(from) == FALSE) {
       from <- paste0("from=", from, "&")
     }
+    
     if (is.null(to) == FALSE) {
       to <- paste0("to=", to, "&")
     }
+    
     if (is.null(language) == FALSE) {
       language <- paste0("language=", URLencode(language), "&")
     }
+    
     if (is.null(sortBy) == FALSE) {
       sortBy <- paste0("sortBy=", URLencode(sortBy), "&")
     }
-    BaseLink <- "https://newsapi.org/v2/everything?"
-    url <-
-      paste0(
-        BaseLink,
-        sources,
-        domains,
-        excludeDomains,
-        query1,
-        qInTitle,
-        language,
-        from,
-        to,
-        sortBy,
-        "apiKey=",
-        api
-      )
-    #return(url)
-    jason <- fromJSON(url)
-    publication <- list()
-    title <- list()
-    source <- list()
-    links <- list()
-    content <- list()
-    maxPages <- ceiling(jason[["totalResults"]] / 20)
-    message(".....USING DEVELOPER API; MAX PAGES = 5.....")
-    message("Collecting Articles About ", query, "...")
-    message("Total Pages: ", maxPages, "...")
     
-    for (x in 1:5) {
-      url2 <-
-        paste0(
-          BaseLink,
-          sources,
-          domains,
-          excludeDomains,
-          query1,
-          qInTitle,
-          language,
-          from,
-          to,
-          sortBy,
-          "page=",
-          x,
-          "&apiKey=",
-          api
-        )
-      #return(url2)
-      jason2 <- fromJSON(url2)
-      message("Retrieving Page ", x, "/", maxPages)
-      publication[[x]] <- jason2[["articles"]][["publishedAt"]]
-      source[[x]] <- jason2[["articles"]][["source"]][["name"]]
-      title[[x]] <- jason2[["articles"]][["title"]]
-      links[[x]] <- jason2[["articles"]][["url"]]
-      content[[x]] <- jason2[["articles"]][["content"]]
+    base_link <- "https://newsapi.org/v2/everything?"
+    
+    
+    initial_link <- paste0(base_link, sources, domains, excludeDomains, query1, qInTitle, language, from, to, sortBy, "apiKey=", api)
+    
+    # Containers ----
+    
+    date <- list()
+    title <- list()
+    newspaper <- list()
+    link <- list()
+    article <- list()
+    
+    # Number of Pages ----
+    pages <- fromJSON(initial_link)
+    
+    maxPages <- ceiling(pages[["totalResults"]] / 20)
+    message(".....USING FREE API; MAX PAGES = 5.....")
+    message("...Collecting Articles About ", query, "...")
+    message("...Total Pages: ", maxPages, "...")
+    
+    
+    # Contents ----
+    for (page in 1:5) { #limited due to Free API.
+      page_link <-
+        paste0(base_link, sources, domains, excludeDomains, query1, qInTitle, language, from, to, sortBy, "page=", page, "&apiKey=", api)
+      
+      
+      
+      
+      
+      page_parse <- fromJSON(page_link)
+      message("...Retrieving Page ", page, "/", maxPages,"...")
+      
+      
+      date[[page]] <- page_parse[["articles"]][["publishedAt"]]
+      newspaper[[page]] <- page_parse[["articles"]][["source"]][["name"]]
+      title[[page]] <- page_parse[["articles"]][["title"]]
+      link[[page]] <- page_parse[["articles"]][["url"]]
+      article[[page]] <- page_parse[["articles"]][["content"]]
+      
+      
       Sys.sleep(.3)
     }
-    framing <-
-      cbind(
-        unlist(source),
-        unlist(title),
-        unlist(links),
-        unlist(publication),
-        unlist(content)
-      )
-    framing <- as.data.frame(framing)
-    colnames(Dataseting) <- c("Source","title", "Links","Dates","Articles")
-    message("READY FOR DOWNLOAD")
-    framing
+    
+    
+    # Preparing Data data for download ----
+    news_data_frame <- tibble(newspaper = unlist(newspaper), title = unlist(title), link = unlist(link), date = unlist(date), article = unlist(article))
+    
+    message("...Scraping complete! Please press the download button for a .csv file...")
+    
+    news_data_frame
+    
   }
 
-NewsAPIEverythingPaid <-
-  function(query = NULL,
-           qInTitle = NULL,
-           domains = NULL,
-           excludeDomains = NULL,
-           from = NULL,
-           to = NULL,
-           language = NULL,
-           query1 = NULL,
-           sources = NULL,
-           sortBy = NULL,
-           api = NULL) {
+NewsAPIEverythingPaid <- function(query = NULL, qInTitle = NULL, domains = NULL, 
+           excludeDomains = NULL, from = NULL, to = NULL, 
+           language = NULL, query1 = NULL, sources = NULL, 
+           sortBy = NULL, api = NULL) {
+    
     if (is.null(sources) == FALSE) {
       sources <- paste0("sources=", sources, "&")
     }
+    
     if (is.null(query) == FALSE) {
       query1 <- paste0("q=", URLencode(query), "&")
     }
+    
     if (is.null(domains) == FALSE) {
       domains <- paste0("domains=", URLencode(domains), "&")
     }
+    
     if (is.null(excludeDomains) == FALSE) {
       excludeDomains <-
         paste0("excludeDomains=", URLencode(excludeDomains), "&")
     }
+    
     if (is.null(from) == FALSE) {
       from <- paste0("from=", from, "&")
     }
+    
     if (is.null(to) == FALSE) {
       to <- paste0("to=", to, "&")
     }
+    
     if (is.null(language) == FALSE) {
       language <- paste0("language=", URLencode(language), "&")
     }
+    
     if (is.null(sortBy) == FALSE) {
       sortBy <- paste0("sortBy=", URLencode(sortBy), "&")
     }
-    BaseLink <- "https://newsapi.org/v2/everything?"
-    url <-
-      paste0(
-        BaseLink,
-        sources,
-        domains,
-        excludeDomains,
-        query1,
-        qInTitle,
-        language,
-        from,
-        to,
-        sortBy,
-        "apiKey=",
-        api
-      )
-    #return(url)
-    jason <- fromJSON(url)
-    publication <- list()
-    title <- list()
-    source <- list()
-    links <- list()
-    content <- list()
-    maxPages <- ceiling(jason[["totalResults"]] / 20)
-    message("Collecting Articles About ", query, "...")
-    message("Total Pages: ", maxPages, "...")
     
-    for (x in 1:maxPages) {
-      url2 <-
-        paste0(
-          BaseLink,
-          sources,
-          domains,
-          excludeDomains,
-          query1,
-          qInTitle,
-          language,
-          from,
-          to,
-          sortBy,
-          "page=",
-          x,
-          "&apiKey=",
-          api
-        )
-      #return(url2)
-      jason2 <- fromJSON(url2)
-      message("Retrieving Page ", x, "/", maxPages)
-      publication[[x]] <- jason2[["articles"]][["publishedAt"]]
-      source[[x]] <- jason2[["articles"]][["source"]][["name"]]
-      title[[x]] <- jason2[["articles"]][["title"]]
-      links[[x]] <- jason2[["articles"]][["url"]]
-      content[[x]] <- jason2[["articles"]][["content"]]
+    message("...Warning, paid API key required...")
+    
+    base_link <- "https://newsapi.org/v2/everything?"
+    
+    
+    initial_link <- paste0(base_link, sources, domains, excludeDomains, query1, qInTitle, language, from, to, sortBy, "apiKey=", api)
+    
+    # Containers ----
+    
+    date <- list()
+    title <- list()
+    newspaper <- list()
+    link <- list()
+    article <- list()
+    
+    # Number of Pages ----
+    pages <- fromJSON(initial_link)
+    
+    maxPages <- ceiling(pages[["totalResults"]] / 20)
+    message(".....USING FREE API; MAX PAGES = 5.....")
+    message("...Collecting Articles About ", query, "...")
+    message("...Total Pages: ", maxPages, "...")
+    
+    
+    # Contents ----
+    for (page in 1:maxPages) { 
+      page_link <-
+        paste0(base_link, sources, domains, excludeDomains, query1, qInTitle, language, from, to, sortBy, "page=", page, "&apiKey=", api)
+      
+      
+      
+      
+      
+      page_parse <- fromJSON(page_link)
+      message("...Retrieving Page ", page, "/", maxPages,"...")
+      
+      
+      date[[page]] <- page_parse[["articles"]][["publishedAt"]]
+      newspaper[[page]] <- page_parse[["articles"]][["source"]][["name"]]
+      title[[page]] <- page_parse[["articles"]][["title"]]
+      link[[page]] <- page_parse[["articles"]][["url"]]
+      article[[page]] <- page_parse[["articles"]][["content"]]
+      
+      
       Sys.sleep(.3)
     }
-    framing <-
-      cbind(
-        unlist(source),
-        unlist(title),
-        unlist(links),
-        unlist(publication),
-        unlist(content)
-      )
-    framing <- as.data.frame(framing)
-    colnames(Dataseting) <- c("Source","title", "Links","Dates","Articles")
-    message("READY FOR DOWNLOAD")
-    framing
+    
+    
+    # Preparing Data data for download ----
+    news_data_frame <- tibble(newspaper = unlist(newspaper), title = unlist(title), link = unlist(link), date = unlist(date), article = unlist(article))
+    
+    message("...Scraping complete! Please press the download button for a .csv file...")
+    
+    news_data_frame
+    
   }
 
 HeadlineDailyFunction <-
-  function(x, y) {
-    basiclink <- "http://hd.stheadline.com/search?keyword="
-    pageslink <- paste0(basiclink, URLencode(x))
-    Pageread <- read_html(pageslink)
+  
+  function(query, start_date) {
+    base_link <- "http://hd.stheadline.com/search?keyword="
+    page_link <- paste0(base_link, URLencode(query))
+    parse_page <- read_html(page_link)
     
-    hits <- Pageread %>%
+    hits <- parse_page %>%
       html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[1]/div/small') %>%
       html_text(trim = TRUE) %>% parse_number()
     
-    Pages <- ceiling(hits / 10)
+    page_num <- ceiling(hits / 10)
+    
+    
+    # Containers ----
     title <- list()
-    Dates <- list()
-    Articles <- vector()
-    Links <- list()
-    Newspaper <- vector()
+    date <- list()
+    article <- vector()
+    link <- list()
+    newspaper <- vector()
+    
     message("...This search resulted in a total of ",
             hits,
             " articles. .")
     
     message("...Now scraping Pages and Searching for Cut-Off Date...")
     
+    # Collecting Metadata ----
+      
+    
+    
     for (i in 1:30) {
       message("Working on Page ", i)
-      Link <- paste0(basiclink, URLencode(x), "&page=", i)
-      message(Link)
-      LinkRead <- read_html(Link)
-      Dates[[i]] <- LinkRead %>%
+      query_link <- paste0(base_link, URLencode(query), "&page=", i)
+      parse_link <- read_html(query_link)
+      date[[i]] <- parse_link %>%
         html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[2]/p[2]/span/text()') %>%
         html_text() %>% parse_date() %>% as.character()
       
       
-      title[[i]] <- LinkRead %>%
+      title[[i]] <- parse_link %>%
         html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[1]') %>%
         html_text(trim = TRUE)
       
-      Links[[i]] <- LinkRead %>%
+      link[[i]] <- parse_link %>%
         html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[1]/h4/a') %>%
         html_attr("href")
       
-      if (Dates[[i]][10] < y) {
+      if (date[[i]][10] < start_date) {
         message("...Detected Cutoff Date. Collected ",i," Pages of Articles...")
         for (n in 1:10) {
-          if (Dates[[i]][n] < y) {
-            Dates[[i]][n] <- NA
+          if (date[[i]][n] < start_date) {
+            date[[i]][n] <- NA
             title[[i]][n] <- NA
-            Links[[i]][n] <- NA
+            link[[i]][n] <- NA
           }
         }
-        Dates[[i]] <- Dates[[i]][!is.na(Dates[[i]])]
+        date[[i]] <- date[[i]][!is.na(date[[i]])]
         title[[i]] <- title[[i]][!is.na(title[[i]])]
-        Links[[i]] <- Links[[i]][!is.na(Links[[i]])]
+        link[[i]] <- link[[i]][!is.na(link[[i]])]
         break
       }
-      
+    
     }
-    Dataseting <-
-      as.data.frame(cbind(unlist(title), unlist(Links), unlist(Dates)), stringsAsFactors = FALSE)
-    for (i in 1:length(Dataseting$V2)) {
-      Dataseting$V2[i] <-
-        paste0("http://hd.stheadline.com", Dataseting$V2[i])
+
+    # Gathering Articles ----
+    
+    link <- unlist(link)
+
+    
+    for (i in 1:length(link)) {
       
-      Article_Read <- read_html(Dataseting$V2[i])
+      link[i] <-
+        paste0("http://hd.stheadline.com", link[i])
+      
+      parse_article <- read_html(link[i])
       message("Gathering Article #", i)
-      Texting <- Article_Read %>%
+      
+      article_text <- parse_article %>%
         html_nodes(xpath = '//*[@id="news-content"]') %>%
         html_text(trim = TRUE)
-      #str_split(Texting,"相關新聞")[1]
-      if (length(Texting) != 0) {
-        Articles[i] <- Texting[Texting != ""]
+      
+      
+      if (length(article_text) != 0) {
+        article[i] <- article_text[article_text != ""]
+        
       } else {
-        Articles[i] <- "NA"
+        
+        article[i] <- "NA"
+        
       }
     }
-    for (n in 1:length(Articles)) {
-      Newspaper[[n]] <- "Headline Daily"
+    
+    # Newspaper Column ----
+    
+    
+    for (n in 1:length(article)) {
+      newspaper[[n]] <- "Headline Daily"
     }
     
-    Dataseting <-
-      as.data.frame(cbind(Newspaper, Dataseting, Articles), stringsAsFactors = FALSE)
-    colnames(Dataseting) <- c("Newspaper","title", "Links","Dates","Articles")
     
+    # Constructing the Table ----
     
+    news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = link, date = unlist(date), article = article)
     
+    message("...Scraping complete! Please press the download button for a .csv file...")
     
-    Dataseting
+    news_data_frame
   }
 
 
@@ -915,8 +912,8 @@ server <- function(input, output, session) {
         query = input$query
       ),
       "Headline Daily" = HeadlineDailyFunction(
-        x = URLencode(input$query),
-        y = input$end5
+        query = URLencode(input$query),
+        start_date = input$end5
       ),
       "Hong Kong Free Press" = HKFunctionPress(
         x = URLencode(input$query),
