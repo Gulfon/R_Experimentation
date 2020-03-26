@@ -334,7 +334,7 @@ nyt_function <-
   }
 
 
-NewsAPIEverythingFree <- function(query = NULL, qInTitle = NULL, domains = NULL, 
+news_api_free <- function(query = NULL, qInTitle = NULL, domains = NULL, 
                                   excludeDomains = NULL, from = NULL, to = NULL, 
                                   language = NULL, query1 = NULL, sources = NULL, 
                                   sortBy = NULL, api = NULL) {
@@ -427,7 +427,7 @@ NewsAPIEverythingFree <- function(query = NULL, qInTitle = NULL, domains = NULL,
     
   }
 
-NewsAPIEverythingPaid <- function(query = NULL, qInTitle = NULL, domains = NULL, 
+news_api_paid <- function(query = NULL, qInTitle = NULL, domains = NULL, 
            excludeDomains = NULL, from = NULL, to = NULL, 
            language = NULL, query1 = NULL, sources = NULL, 
            sortBy = NULL, api = NULL) {
@@ -522,7 +522,7 @@ NewsAPIEverythingPaid <- function(query = NULL, qInTitle = NULL, domains = NULL,
     
   }
 
-HeadlineDailyFunction <-
+headline_daily_function <-
   
   function(query, start_date) {
     base_link <- "http://hd.stheadline.com/search?keyword="
@@ -892,14 +892,14 @@ server <- function(input, output, session) {
         to_date = input$end2,
         api = input$APIN
       ),
-      "NewsAPI Free" = NewsAPIEverythingFree(
+      "NewsAPI Free" = news_api_free(
         from = input$start3,
         to = input$end3,
         query = input$query,
         api = input$NAPIF,
         sources = input$sources
       ),
-      "NewsAPI Paid" = NewsAPIEverythingPaid(
+      "NewsAPI Paid" = news_api_paid(
         from = input$start3,
         to = input$end3,
         query = input$query,
@@ -911,7 +911,7 @@ server <- function(input, output, session) {
         to_date = input$end4,
         query = input$query
       ),
-      "Headline Daily" = HeadlineDailyFunction(
+      "Headline Daily" = headline_daily_function(
         query = URLencode(input$query),
         start_date = input$end5
       ),
