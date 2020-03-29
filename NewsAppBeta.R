@@ -50,6 +50,7 @@ ft_function <- function(query, from_date, to_date) {
     return(paste0("...No Result, Please Modify Search Parameters..."))
     
   }
+  message("...Collecting articles about ", URLdecode(query), "...")
   
   
   # Creating Containers ----
@@ -173,10 +174,9 @@ guardian_function <- function(from_date, to_date, query, api) {
     from <- "&from-date="
     to <- "&to-date="
     page <- "&page="
-    
+    api <- trimws(api)
     
     url <- paste0(base_link, query, from, from_date, to, to_date, page, "1", "&api-key=", api)
-    
     guardian_json <- fromJSON(url)
     
     # Creating Containers ----
@@ -190,7 +190,7 @@ guardian_function <- function(from_date, to_date, query, api) {
     # Status Messages ----
     message("...Collecting articles about ", URLdecode(query), "...")
     message("...Total Pages: ", guardian_json[["response"]][["pages"]], "...")
-    message("...Completion in ", ceiling((guardian_json[["response"]][["pages"]] + 30) / 60), " minutes", "...")
+    message("...Completion in around ", ceiling((guardian_json[["response"]][["pages"]] + 60) / 45), " minutes", "...")
     
     # Data Collection ----
     for (page_num in 1:guardian_json[["response"]][["pages"]]) {
@@ -239,7 +239,7 @@ nyt_function <-
     base_link <- paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",
         query, "&begin_date=",
         from_date, "&end_date=",
-        to_date, "&facet_filter=true&api-key=", api
+        to_date, "&facet_filter=true&api-key=", trimws(api)
       )
     
     nyt_json <- fromJSON(base_link)
@@ -254,7 +254,8 @@ nyt_function <-
     
     # Status Messages ----
     
-    message("...Collecting Articles About ", URLdecode(query) , "...")
+    message("...Collecting articles about ", URLdecode(query), "...")
+    
     message("...Total Pages: ", pages, "...")
     message("...Completion in ", ceiling((pages * 6 + 120) / 60), " minutes", "...")
     
@@ -275,7 +276,7 @@ nyt_function <-
           "&begin_date=", from_date,
           "&end_date=", to_date,
           "&page=",page,
-          "&facet_filter=true&api-key=", api)
+          "&facet_filter=true&api-key=", trimws(api))
       
       page_json <- fromJSON(page_link)#Constructing the url
       
@@ -305,8 +306,8 @@ nyt_function <-
         get_link <- read_html(article_prep[n])
         parse_link <- htmlParse(get_link)
 
-        catching <- unlist(xpathSApply(parse_link, path = '//*[@id="story"]/section/div', xmlValue))
-        article[n] <- paste(trimws(catching), collapse = "")
+        extract_article <- unlist(xpathSApply(parse_link, path = '//*[@id="story"]/section/div', xmlValue))
+        article[n] <- paste(trimws(extract_article), collapse = "")
       } else {
         article[n] <- NA
       }
@@ -386,6 +387,8 @@ news_api_free <- function(query = NULL, qInTitle = NULL, domains = NULL,
     article <- list()
     
     # Number of Pages ----
+    message("...Collecting articles about ", URLdecode(query), "...")
+    
     pages <- fromJSON(initial_link)
     
     maxPages <- ceiling(pages[["totalResults"]] / 20)
@@ -482,6 +485,7 @@ news_api_paid <- function(query = NULL, qInTitle = NULL, domains = NULL,
     
     # Number of Pages ----
     pages <- fromJSON(initial_link)
+    message("...Collecting articles about ", URLdecode(query), "...")
     
     maxPages <- ceiling(pages[["totalResults"]] / 20)
     message(".....USING FREE API; MAX PAGES = 5.....")
@@ -522,9 +526,8 @@ news_api_paid <- function(query = NULL, qInTitle = NULL, domains = NULL,
     
   }
 
-headline_daily_function <-
+headline_daily_function <- function(query, cut_off){
   
-  function(query, start_date) {
     base_link <- "http://hd.stheadline.com/search?keyword="
     page_link <- paste0(base_link, URLencode(query))
     parse_page <- read_html(page_link)
@@ -542,19 +545,19 @@ headline_daily_function <-
     article <- vector()
     link <- list()
     newspaper <- vector()
-    
-    message("...This search resulted in a total of ",
-            hits,
-            " articles. .")
-    
-    message("...Now scraping Pages and Searching for Cut-Off Date...")
+
+    message("...Collecting articles about ", URLdecode(query), "...")
     
     # Collecting Metadata ----
       
+    message("...This query resulted in ",
+            ceiling(hits/10),
+            " pages...")
     
+    message("...Collecting metadata and searching pages for Cut-Off Date...")
     
-    for (i in 1:30) {
-      message("Working on Page ", i)
+    for (i in 1:ceiling(hits/10)) {
+      message("...Page ", i, "/", ceiling(hits/10),"...")
       query_link <- paste0(base_link, URLencode(query), "&page=", i)
       parse_link <- read_html(query_link)
       date[[i]] <- parse_link %>%
@@ -570,35 +573,39 @@ headline_daily_function <-
         html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[1]/h4/a') %>%
         html_attr("href")
       
-      if (date[[i]][10] < start_date) {
-        message("...Detected Cutoff Date. Collected ",i," Pages of Articles...")
-        for (n in 1:10) {
-          if (date[[i]][n] < start_date) {
-            date[[i]][n] <- NA
-            title[[i]][n] <- NA
-            link[[i]][n] <- NA
-          }
+      if (date[[i]][10] < cut_off) {
+        
+        
+        for (n in 1:length(unlist(date))) {
+          newspaper[[n]] <- "Headline Daily"
         }
-        date[[i]] <- date[[i]][!is.na(date[[i]])]
-        title[[i]] <- title[[i]][!is.na(title[[i]])]
-        link[[i]] <- link[[i]][!is.na(link[[i]])]
+        
+        prelim_news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date)) %>%
+          filter(date >= cut_off)
+        
+        message("...Filtered content posted before ", ymd(cut_off),"...")
+        
         break
+        
+        
       }
-    
+      
     }
+    
 
     # Gathering Articles ----
     
-    link <- unlist(link)
+    
+    message("...Now collecting ", length(prelim_news_data_frame$link)," articles...")
 
     
-    for (i in 1:length(link)) {
+    for (i in 1:length(prelim_news_data_frame$link)) {
       
-      link[i] <-
-        paste0("http://hd.stheadline.com", link[i])
+      prelim_news_data_frame$link[i] <-
+        paste0("http://hd.stheadline.com", prelim_news_data_frame$link[i])
       
-      parse_article <- read_html(link[i])
-      message("Gathering Article #", i)
+      parse_article <- read_html(prelim_news_data_frame$link[i])
+      message("...", i,"/",length(prelim_news_data_frame$link),"...")
       
       article_text <- parse_article %>%
         html_nodes(xpath = '//*[@id="news-content"]') %>%
@@ -615,114 +622,141 @@ headline_daily_function <-
       }
     }
     
-    # Newspaper Column ----
     
     
-    for (n in 1:length(article)) {
-      newspaper[[n]] <- "Headline Daily"
-    }
-    
-    
-    # Constructing the Table ----
-    
-    news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = link, date = unlist(date), article = article)
+    # Preparing Data data for download ----
+    news_data_frame <-  prelim_news_data_frame %>%
+      mutate(article = article)
     
     message("...Scraping complete! Please press the download button for a .csv file...")
     
     news_data_frame
+    
   }
 
 
 
-HKFunctionPress <-
-  function(n  = 50, x, y) {
-    basiclink <- "https://www.hongkongfp.com/page/"
-    pageslink <- paste0(basiclink,n,"/?s=", URLencode(x))
+hkfp_function <- function(page  = 50, query, cut_off) {
+  
+  
+  
+  # Prerequisites ----
     
-    catching <- tryCatch(read_html(pageslink) %>%
+    base_link <- "https://www.hongkongfp.com/page/"
+    
+    query_link <- paste0(base_link,page,"/?s=", URLencode(query))
+    message("...Searching for Cut-off Date...")
+    empty_page_catch <- tryCatch(read_html(query_link) %>%
                            html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[1]/header/h2/a')%>%
                            html_attr('href'),
                          error = function(e){NA})
-    while (is.na(catching) == TRUE) {
-      n = n-1
-      pageslink <- paste0(basiclink,n,"/?s=", URLencode(x))
-      catching <- tryCatch(read_html(pageslink) %>%
+    
+    
+    while (is.na(empty_page_catch) == TRUE) {
+      n = 1
+      message("...Processing ", n, "/", "50-ish...")
+      page = page-1
+      
+      query_link <- paste0(base_link,page,"/?s=", URLencode(query))
+      
+      empty_page_catch <- tryCatch(read_html(query_link) %>%
                              html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[1]/header/h2/a')%>%
                              html_attr('href'),
                            error = function(e){NA})
-      message("...Processing...")
+      
+      
     }
     
-    hits <- n*150
+    
+    message("...Collecting articles about ", URLdecode(query), "...")
+    
+    
+    #  Containers ----
+    
     title <- list()
-    Dates <- list()
-    Articles <- vector()
-    Links <- list()
-    Newspaper <- vector()
-    message("...This search resulted in a total of ",
-            hits,
-            " articles. .")
+    date <- list()
+    article <- vector()
+    link <- list()
+    newspaper <- vector()
     
-    message("...Now scraping Pages and Searching for Cut-Off Date...")
     
-    for (i in 1:n) {
-      message("Working on Page ", i)
-      Link <- paste0(basiclink,i,"/?s=", URLencode(x))
-      message(Link)
-      LinkRead <- read_html(Link)
-      Dates[[i]] <- LinkRead %>%
+    # Data Collection (Metadata) ----
+    
+    message("...This query resulted in ",
+            page,
+            " pages...")
+    
+    message("...Collecting metadata...")
+    
+    for (i in 1:page) {
+      message("...Working on Page ", i,"...")
+      query_link <- paste0(base_link,i,"/?s=", URLencode(query))
+
+      link_parse <- read_html(query_link)
+      date[[i]] <- link_parse %>%
         html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[*]/header/div/div/span') %>%
         html_text() %>% parse_date(format = "%d %B %Y %H:%M") %>% as.character()
       
       
-      title[[i]] <- LinkRead %>%
+      title[[i]] <- link_parse %>%
         html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[*]/header/h2/a') %>%
         html_text(trim = TRUE) 
       
-      Links[[i]] <- LinkRead %>%
+      link[[i]] <- link_parse %>%
         html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[*]/header/h2/a') %>%
         html_attr("href")
       
-      message(length(Dates[[1]]))
-      if (Dates[[i]][1:150] < y) {
-        message("...Detected Cutoff Date. Collected ",i," Pages of Articles...")
-        for (k in 1:150) {
-          if (Dates[[i]][k] < y) {
-            Dates[[i]][k] <- NA
-            title[[i]][k] <- NA
-            Links[[i]][k] <- NA
-          }
+      message("...Metadata collected...")
+      if (date[[i]][1:150] < cut_off) {
+        
+        
+        
+        for (n in 1:length(unlist(date))) {
+          newspaper[[n]] <- "Hong Kong Free Press"
         }
-        Dates[[i]] <- Dates[[i]][!is.na(Dates[[i]])]
-        title[[i]] <- title[[i]][!is.na(title[[i]])]
-        Links[[i]] <- Links[[i]][!is.na(Links[[i]])]
+        prelim_news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date)) %>%
+          filter(date >= cut_off)
+        
+        
+        message("...Filtered content posted before ", ymd(cut_off),"...")
+        
         break
-      }
-      
-    }
-    Dataseting <-
-      as.data.frame(cbind(unlist(title), unlist(Links), unlist(Dates)), stringsAsFactors = FALSE)
-    for (i in 1:length(Dataseting$V2)) {
-      Article_Read <- read_html(Dataseting$V2[i])
-      message("Gathering Article #", i)
+        
+  
+          }
+          
+        }
+        
+        
+    
+    # Data Collection (Articles) ----
+    
+    message("...Now collecting ", length(prelim_news_data_frame$link)," articles...")
+    
+    for (hit in 1:length(prelim_news_data_frame$link)) {
+      Article_Read <- read_html(prelim_news_data_frame$link[hit])
+      message("...", hit,"...")
       Texting <- Article_Read %>%
         html_nodes(xpath = '/html/body/div[1]/div/div[2]/div/main/article/div/p') %>%
         html_text(trim = TRUE) %>% paste(collapse = " ")
       #str_split(Texting,"相關新聞")
      
       if (length(Texting) != "") {
-        Articles[i] <- str_sub(Texting, end=-233)
+        article[hit] <- str_sub(Texting, end=-233)
       } else {
-        Articles[i] <- "NA"
+        article[hit] <- "NA"
       }
     }
-    for (n in 1:length(Articles)) {
-      Newspaper[[n]] <- "Hong Kong Free Press"
-    }
-    Dataseting <-
-      as.data.frame(cbind(Newspaper,Dataseting, Articles), stringsAsFactors = FALSE)
-    colnames(Dataseting) <- c("Newspaper","title", "Links","Dates","Articles")
-    Dataseting
+    
+    # Preparing Data data for download ----
+    news_data_frame <-  prelim_news_data_frame %>%
+      mutate(article = article)
+    
+    message("...Scraping complete! Please press the download button for a .csv file...")
+    
+    news_data_frame
+    
+    
   }
 
 
@@ -913,11 +947,11 @@ server <- function(input, output, session) {
       ),
       "Headline Daily" = headline_daily_function(
         query = URLencode(input$query),
-        start_date = input$end5
+        cut_off = input$end5
       ),
-      "Hong Kong Free Press" = HKFunctionPress(
-        x = URLencode(input$query),
-        y = input$end6
+      "Hong Kong Free Press" = hkfp_function(
+        query = URLencode(input$query),
+        cut_off = input$end6
       )
     )
   })
