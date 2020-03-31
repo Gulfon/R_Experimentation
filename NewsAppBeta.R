@@ -16,6 +16,7 @@ library(stringr)
 library(purrr)
 library(tidyverse)
 library(tibble)
+library(lubridate)
 
 ###Guardian API: "b80008a9-a43c-4047-a0ad-47f0cd8efb20"
 ###NYTIMES_API <- "KCOgDvSOdjGOQeF0kfQJ7Ch4IqMhEG42"
@@ -53,7 +54,7 @@ ft_function <- function(query, from_date, to_date) {
   message("...Collecting articles about ", URLdecode(query), "...")
   
   
-  # Creating Containers ----
+  # Containers ----
   
   title <- list()
   link <- list()
@@ -62,7 +63,7 @@ ft_function <- function(query, from_date, to_date) {
   newspaper <- vector()
   
   
-  # Data Collection & Status Messages [No Articles] ----
+  # Metadata [No Articles] ----
   
   hits <- page_num * 25  
   
@@ -113,7 +114,7 @@ ft_function <- function(query, from_date, to_date) {
   
   news_data_frame <- tibble(title = unlist(title), link = unlist(link), date = unlist(date))
   
-  # Collecting Article ----
+  # Articles ----
   
   for (i in 1:length(news_data_frame$link)) {
     
@@ -149,13 +150,13 @@ ft_function <- function(query, from_date, to_date) {
       }
   }
   
-  # Creating Newspaper Column ---- 
+  # Newspaper (Meta) ---- 
   
   for (n in 1:length(article)) {
     newspaper[n] <- "Financial Times"
   }
   
-  # Preparting Data for Download ----
+  # Download Prep ----
   
   news_data_frame <- add_column(news_data_frame, newspaper = newspaper, article = article) %>%
     select(newspaper, title, link, date, article)
@@ -179,7 +180,7 @@ guardian_function <- function(from_date, to_date, query, api) {
     url <- paste0(base_link, query, from, from_date, to, to_date, page, "1", "&api-key=", api)
     guardian_json <- fromJSON(url)
     
-    # Creating Containers ----
+    # Containers ----
     newspaper <- list()
     title <- list()
     section <- list()
@@ -192,7 +193,8 @@ guardian_function <- function(from_date, to_date, query, api) {
     message("...Total Pages: ", guardian_json[["response"]][["pages"]], "...")
     message("...Completion in around ", ceiling((guardian_json[["response"]][["pages"]] + 60) / 45), " minutes", "...")
     
-    # Data Collection ----
+    # Data (Metadata & Articles) ----
+    
     for (page_num in 1:guardian_json[["response"]][["pages"]]) {
       
       message("...Gathering page ", page_num, "/", guardian_json[["response"]][["pages"]], "...")
@@ -203,8 +205,8 @@ guardian_function <- function(from_date, to_date, query, api) {
       
       title[[page_num]] <- page_json[["response"]][["results"]][["webTitle"]]
       
-      section[[page_num]] <-
-        page_json[["response"]][["results"]][["section"]]
+      #section[[page_num]] <-
+        #page_json[["response"]][["results"]][["section"]]
       
       link[[page_num]] <- page_json[["response"]][["results"]][["webUrl"]]
       
@@ -214,16 +216,19 @@ guardian_function <- function(from_date, to_date, query, api) {
       date[[page_num]] <-
         page_json[["response"]][["results"]][["webPublicationDate"]]
       
+      message(page_json[["response"]][["results"]][["section"]])
+      
       Sys.sleep(.3)
     }
     
-    # Newspaper Column ----
+    # Newspaper (Meta) ----
     for (n in 1:length(unlist(title))) {
       newspaper[[n]] <- "Guardian"
     }
     
-    # Preparing Data data for download ----
-    news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date), article = unlist(article), section = unlist(section))
+    # Download Prep ----
+    ## removed section for the time, seems to bug out
+    news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date), article = unlist(article))
     
     message("...Scraping complete! Please press the download button for a .csv file...")
     
@@ -234,6 +239,7 @@ guardian_function <- function(from_date, to_date, query, api) {
 
 nyt_function <-
   function(from_date, to_date, query, api) {
+    
     # Prerequisites ----
     
     base_link <- paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",
@@ -243,19 +249,24 @@ nyt_function <-
       )
     
     nyt_json <- fromJSON(base_link)
+    
     pages <- ceiling(nyt_json$response$meta$hits[1] / 10)
+    
     if (pages > 200) {
+      
       message("...You're trying to gather ", pages, "pages...")
       pages <- 200
       message("...NYT API Allows for 200 Pages Before Kicking you Out...")
-    } else {
+    
+      } else {
+      
       pages <- pages
+      
     }
     
     # Status Messages ----
     
     message("...Collecting articles about ", URLdecode(query), "...")
-    
     message("...Total Pages: ", pages, "...")
     message("...Completion in ", ceiling((pages * 6 + 120) / 60), " minutes", "...")
     
@@ -268,7 +279,7 @@ nyt_function <-
     link <- list()
     article <- vector()
     
-    # Data Collection (Pages) ----
+    # Metadata & Pages ----
     
     for (page in 1:pages) {
       page_link <-
@@ -297,7 +308,7 @@ nyt_function <-
     
     
     
-    # Data Collection (Articles) ----
+    # Articles ----
     
     for (n in 1:length(article_prep)) {
       
@@ -318,13 +329,13 @@ nyt_function <-
       Sys.sleep(.2)
     }
     
-    # Newspaper Column ----
+    # Newspaper (Meta) ----
     
     for (n in 1:length(unlist(title))) {
       newspaper[[n]] <- "New York Times"
     }
     
-    # Constructing the Table ----
+    # Download Prep ----
     
     news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date), article = article, section = unlist(section))
     
@@ -339,6 +350,10 @@ news_api_free <- function(query = NULL, qInTitle = NULL, domains = NULL,
                                   excludeDomains = NULL, from = NULL, to = NULL, 
                                   language = NULL, query1 = NULL, sources = NULL, 
                                   sortBy = NULL, api = NULL) {
+  
+  
+  # Prerequisites ----
+  
     
     if (is.null(sources) == FALSE) {
       sources <- paste0("sources=", sources, "&")
@@ -386,18 +401,19 @@ news_api_free <- function(query = NULL, qInTitle = NULL, domains = NULL,
     link <- list()
     article <- list()
     
-    # Number of Pages ----
+    # Pages ----
     message("...Collecting articles about ", URLdecode(query), "...")
     
     pages <- fromJSON(initial_link)
     
     maxPages <- ceiling(pages[["totalResults"]] / 20)
+    
     message(".....USING FREE API; MAX PAGES = 5.....")
     message("...Collecting Articles About ", query, "...")
     message("...Total Pages: ", maxPages, "...")
     
     
-    # Contents ----
+    # Data (Meta & Article) ----
     for (page in 1:5) { #limited due to Free API.
       page_link <-
         paste0(base_link, sources, domains, excludeDomains, query1, qInTitle, language, from, to, sortBy, "page=", page, "&apiKey=", api)
@@ -421,10 +437,10 @@ news_api_free <- function(query = NULL, qInTitle = NULL, domains = NULL,
     }
     
     
-    # Preparing Data data for download ----
+    # Download Prep ----
     news_data_frame <- tibble(newspaper = unlist(newspaper), title = unlist(title), link = unlist(link), date = unlist(date), article = unlist(article))
     
-    message("...Scraping complete! Please press the download button for a .csv file...")
+    message("...Scraping comtogplete! Please press the download button for a .csv file...")
     
     news_data_frame
     
@@ -434,6 +450,8 @@ news_api_paid <- function(query = NULL, qInTitle = NULL, domains = NULL,
            excludeDomains = NULL, from = NULL, to = NULL, 
            language = NULL, query1 = NULL, sources = NULL, 
            sortBy = NULL, api = NULL) {
+  
+  # Prerequisites ----
     
     if (is.null(sources) == FALSE) {
       sources <- paste0("sources=", sources, "&")
@@ -483,7 +501,7 @@ news_api_paid <- function(query = NULL, qInTitle = NULL, domains = NULL,
     link <- list()
     article <- list()
     
-    # Number of Pages ----
+    # Pages ----
     pages <- fromJSON(initial_link)
     message("...Collecting articles about ", URLdecode(query), "...")
     
@@ -493,7 +511,7 @@ news_api_paid <- function(query = NULL, qInTitle = NULL, domains = NULL,
     message("...Total Pages: ", maxPages, "...")
     
     
-    # Contents ----
+    # Data (Meta & Article) ----
     for (page in 1:maxPages) { 
       page_link <-
         paste0(base_link, sources, domains, excludeDomains, query1, qInTitle, language, from, to, sortBy, "page=", page, "&apiKey=", api)
@@ -517,7 +535,7 @@ news_api_paid <- function(query = NULL, qInTitle = NULL, domains = NULL,
     }
     
     
-    # Preparing Data data for download ----
+    # Download Prep ----
     news_data_frame <- tibble(newspaper = unlist(newspaper), title = unlist(title), link = unlist(link), date = unlist(date), article = unlist(article))
     
     message("...Scraping complete! Please press the download button for a .csv file...")
@@ -526,7 +544,9 @@ news_api_paid <- function(query = NULL, qInTitle = NULL, domains = NULL,
     
   }
 
-headline_daily_function <- function(query, cut_off){
+headline_daily_function <- function(query, cut_off) {
+  
+  # Prerequisites ----
   
     base_link <- "http://hd.stheadline.com/search?keyword="
     page_link <- paste0(base_link, URLencode(query))
@@ -540,6 +560,7 @@ headline_daily_function <- function(query, cut_off){
     
     
     # Containers ----
+    
     title <- list()
     date <- list()
     article <- vector()
@@ -548,7 +569,7 @@ headline_daily_function <- function(query, cut_off){
 
     message("...Collecting articles about ", URLdecode(query), "...")
     
-    # Collecting Metadata ----
+    #  Metadata ----
       
     message("...This query resulted in ",
             ceiling(hits/10),
@@ -593,7 +614,7 @@ headline_daily_function <- function(query, cut_off){
     }
     
 
-    # Gathering Articles ----
+    # Articles ----
     
     
     message("...Now collecting ", length(prelim_news_data_frame$link)," articles...")
@@ -624,7 +645,8 @@ headline_daily_function <- function(query, cut_off){
     
     
     
-    # Preparing Data data for download ----
+    # Download Prep ----
+    
     news_data_frame <-  prelim_news_data_frame %>%
       mutate(article = article)
     
@@ -644,17 +666,23 @@ hkfp_function <- function(page  = 50, query, cut_off) {
     
     base_link <- "https://www.hongkongfp.com/page/"
     
+    
+    
     query_link <- paste0(base_link,page,"/?s=", URLencode(query))
-    message("...Searching for Cut-off Date...")
+    
+    message("...Collecting articles about ", URLdecode(query), "...")
+    
+    message("...Searching for Cut-off Date. This might take a couple of minutes...")
     empty_page_catch <- tryCatch(read_html(query_link) %>%
                            html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[1]/header/h2/a')%>%
                            html_attr('href'),
                          error = function(e){NA})
     
-    
+    i = 0
+    n = 1
     while (is.na(empty_page_catch) == TRUE) {
-      n = 1
-      message("...Processing ", n, "/", "50-ish...")
+      i = i+n
+      message("...Processing ",i, "/50 (or less)...")
       page = page-1
       
       query_link <- paste0(base_link,page,"/?s=", URLencode(query))
@@ -668,7 +696,7 @@ hkfp_function <- function(page  = 50, query, cut_off) {
     }
     
     
-    message("...Collecting articles about ", URLdecode(query), "...")
+    
     
     
     #  Containers ----
@@ -680,13 +708,13 @@ hkfp_function <- function(page  = 50, query, cut_off) {
     newspaper <- vector()
     
     
-    # Data Collection (Metadata) ----
+    # Metadata ----
     
     message("...This query resulted in ",
             page,
             " pages...")
     
-    message("...Collecting metadata...")
+    message("...Collecting metadata (Title, Date, Link)...")
     
     for (i in 1:page) {
       message("...Working on Page ", i,"...")
@@ -720,6 +748,7 @@ hkfp_function <- function(page  = 50, query, cut_off) {
         
         message("...Filtered content posted before ", ymd(cut_off),"...")
         
+        
         break
         
   
@@ -729,7 +758,7 @@ hkfp_function <- function(page  = 50, query, cut_off) {
         
         
     
-    # Data Collection (Articles) ----
+    # Articles ----
     
     message("...Now collecting ", length(prelim_news_data_frame$link)," articles...")
     
@@ -762,6 +791,7 @@ hkfp_function <- function(page  = 50, query, cut_off) {
 
 # Define UI for data download app -----
 ui <- fluidPage(
+  
   theme = shinytheme("cerulean"),
   useShinyjs(),
   # App title ----
@@ -773,19 +803,19 @@ ui <- fluidPage(
     # Sidebar panel for inputs ----
     sidebarPanel(
       shiny::actionButton(
-        inputId = 'ab1',
+        inputId = 'doc_1',
         label = "Guardian API Documentation",
         icon = icon("th"),
         onclick = "window.open('https://open-platform.theguardian.com/documentation/')"
       ),
       shiny::actionButton(
-        inputId = 'ab2',
+        inputId = 'doc_2',
         label = "NYT API Documentation",
         icon = icon("th"),
         onclick = "window.open('https://developer.nytimes.com/docs/articlesearch-product/1/overview/')"
       ),
       shiny::actionButton(
-        inputId = 'ab3',
+        inputId = 'doc_3',
         label = "News API Documentation",
         icon = icon("th"),
         onclick = "window.open('https://newsapi.org/docs ')"
@@ -974,8 +1004,10 @@ server <- function(input, output, session) {
       })
     })
   })
+  
   ##Hides the Click Button
   observeEvent(input$clicks, {
+    
     hide("clicks")
     shinyjs::disable("dataset")
     shinyjs::disable("start1")
