@@ -57,7 +57,7 @@ ft_function <- function(query, from_date, to_date) {
   
   # Containers ----
   
-  title <- list()
+  headline <- list()
   link <- list()
   date <- list()
   article <- vector()
@@ -92,7 +92,7 @@ ft_function <- function(query, from_date, to_date) {
                                   sort))
     
     
-    title[[i]] <- link_read %>%
+    headline[[i]] <- link_read %>%
       html_nodes(xpath = '//*[@id="site-content"]/div/ul/li[*]/div/div/div/div[1]/div[2]/a') %>%
       html_text()
     
@@ -113,7 +113,7 @@ ft_function <- function(query, from_date, to_date) {
   }
 
   
-  news_data_frame <- tibble(title = unlist(title), link = unlist(link), date = unlist(date))
+  news_data_frame <- tibble(headline = unlist(headline), link = unlist(link), date = unlist(date))
   
   # Articles ----
   
@@ -160,7 +160,7 @@ ft_function <- function(query, from_date, to_date) {
   # Download Prep ----
   
   news_data_frame <- add_column(news_data_frame, newspaper = newspaper, article = article) %>%
-    select(newspaper, title, link, date, article)
+    select(newspaper, headline, link, date, article)
   
   message("...Scraping complete! Once the table appears, please press the download button for a .csv file...")
   
@@ -183,7 +183,7 @@ guardian_function <- function(from_date, to_date, query, api) {
   
   # Containers ----
   newspaper <- list()
-  title <- list()
+  headline <- list()
   section <- list()
   date <- list()
   link <- list()
@@ -204,7 +204,7 @@ guardian_function <- function(from_date, to_date, query, api) {
     
     page_json <- fromJSON(page_url)
     
-    title[[page_num]] <- page_json[["response"]][["results"]][["webTitle"]]
+    headline[[page_num]] <- page_json[["response"]][["results"]][["webTitle"]]
     
     #section[[page_num]] <-
     #page_json[["response"]][["results"]][["section"]]
@@ -223,16 +223,16 @@ guardian_function <- function(from_date, to_date, query, api) {
   }
   
   # Newspaper (Meta) ----
-  for (n in 1:length(unlist(title))) {
+  for (n in 1:length(unlist(headline))) {
     newspaper[[n]] <- "Guardian"
   }
   
   # Download Prep ----
   ## removed section for the time, seems to bug out
-  news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date), article = unlist(article))
+  news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = unlist(article))
   
   message("...Scraping complete! Please press the download button for a .csv file...")
-  
+  message(typeof(news_data_frame))
   news_data_frame
   
   
@@ -273,7 +273,7 @@ nyt_function <- function(from_date, to_date, query, api) {
     # Containers ----
     
     newspaper <- list()
-    title <- list()
+    headline <- list()
     section <- list()
     date <- list()
     link <- list()
@@ -293,7 +293,7 @@ nyt_function <- function(from_date, to_date, query, api) {
       
       message("...Gathering page ", page, "/", pages,"...")
       
-      title[[page]] <- page_json[["response"]][["docs"]][["headline"]][["main"]]
+      headline[[page]] <- page_json[["response"]][["docs"]][["headline"]][["main"]]
       
       section[[page]] <- page_json[["response"]][["docs"]][["section_name"]]
       
@@ -331,13 +331,13 @@ nyt_function <- function(from_date, to_date, query, api) {
     
     # Newspaper (Meta) ----
     
-    for (n in 1:length(unlist(title))) {
+    for (n in 1:length(unlist(headline))) {
       newspaper[[n]] <- "New York Times"
     }
     
     # Download Prep ----
     
-    news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date), article = article, section = unlist(section))
+    news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = article, section = unlist(section))
     
     message("...Scraping complete! Please press the download button for a .csv file...")
     
@@ -395,7 +395,7 @@ news_api <- function(query = NULL, qInTitle = NULL, domains = NULL,
   # Containers ----
   
   date <- list()
-  title <- list()
+  headline <- list()
   newspaper <- list()
   link <- list()
   article <- list()
@@ -432,7 +432,7 @@ news_api <- function(query = NULL, qInTitle = NULL, domains = NULL,
     
     date[[page]] <- page_parse[["articles"]][["publishedAt"]]
     newspaper[[page]] <- page_parse[["articles"]][["source"]][["name"]]
-    title[[page]] <- page_parse[["articles"]][["title"]]
+    headline[[page]] <- page_parse[["articles"]][["headline"]]
     link[[page]] <- page_parse[["articles"]][["url"]]
     article[[page]] <- page_parse[["articles"]][["content"]]
     
@@ -442,7 +442,7 @@ news_api <- function(query = NULL, qInTitle = NULL, domains = NULL,
   
   
   # Download Prep ----
-  news_data_frame <- tibble(newspaper = unlist(newspaper), title = unlist(title), link = unlist(link), date = unlist(date), article = unlist(article))
+  news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = unlist(article))
   
   message("...Scraping complete! Please press the download button for a .csv file...")
   
@@ -469,7 +469,7 @@ headline_daily_function <- function(query, cut_off) {
   
   # Containers ----
   
-  title <- list()
+  headline <- list()
   date <- list()
   article <- vector()
   link <- list()
@@ -494,7 +494,7 @@ headline_daily_function <- function(query, cut_off) {
       html_text() %>% parse_date() %>% as.character()
     
     
-    title[[i]] <- parse_link %>%
+    headline[[i]] <- parse_link %>%
       html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[1]') %>%
       html_text(trim = TRUE)
     
@@ -509,7 +509,7 @@ headline_daily_function <- function(query, cut_off) {
         newspaper[[n]] <- "Headline Daily"
       }
       
-      prelim_news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date)) %>%
+      prelim_news_data_frame <- tibble(newspaper = newspaper, headline = unlist(headline), link = unlist(link), date = unlist(date)) %>%
         filter(date >= cut_off)
       
       message("...Filtered content posted before ", ymd(cut_off),"...")
@@ -612,7 +612,7 @@ hkfp_function <- function(page, query, cut_off) {
   
   #  Containers ----
   
-  title <- list()
+  headline <- list()
   date <- list()
   article <- vector()
   link <- list()
@@ -637,7 +637,7 @@ hkfp_function <- function(page, query, cut_off) {
       html_text() %>% parse_date(format = "%d %B %Y %H:%M") %>% as.character()
     
     
-    title[[i]] <- link_parse %>%
+    headline[[i]] <- link_parse %>%
       html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[*]/header/h2/a') %>%
       html_text(trim = TRUE) 
     
@@ -653,7 +653,7 @@ hkfp_function <- function(page, query, cut_off) {
       for (n in 1:length(unlist(date))) {
         newspaper[[n]] <- "Hong Kong Free Press"
       }
-      prelim_news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date)) %>%
+      prelim_news_data_frame <- tibble(newspaper = newspaper, headline = unlist(headline), link = unlist(link), date = unlist(date)) %>%
         filter(date >= cut_off)
       
       
@@ -705,7 +705,7 @@ ui <- fluidPage(
   
   theme = shinytheme("cerulean"),
   useShinyjs(),
-  # App title ----
+  # App headline ----
   titlePanel("News Data Collection"),
   
   
@@ -1047,7 +1047,7 @@ server <- function(input, output, session) {
       paste(input$dataset, noquote(input$query),".csv",sep = "")
     },
     content = function(file) {
-      write.csv(datasetInput(), file, row.names = FALSE)
+      write_csv(datasetInput(), file)
     }
   )
   
