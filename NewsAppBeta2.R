@@ -392,6 +392,7 @@ news_api <- function(query = NULL, qInTitle = NULL, domains = NULL,
   
   
   initial_link <- paste0(base_link, sources, domains, excludeDomains, query1, qInTitle, language, from, to, sortBy, "apiKey=", api)
+  message(initial_link)
   # Containers ----
   
   date <- list()
@@ -452,128 +453,17 @@ news_api <- function(query = NULL, qInTitle = NULL, domains = NULL,
 
 
 
-headline_daily_function <- function(query, cut_off) {
-  
-  # Prerequisites ----
-  
-  base_link <- "http://hd.stheadline.com/search?keyword="
-  page_link <- paste0(base_link, URLencode(query))
-  parse_page <- read_html(page_link)
-  
-  hits <- parse_page %>%
-    html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[1]/div/small') %>%
-    html_text(trim = TRUE) %>% parse_number()
-  
-  page_num <- ceiling(hits / 10)
-  
-  
-  # Containers ----
-  
-  headline <- list()
-  date <- list()
-  article <- vector()
-  link <- list()
-  newspaper <- vector()
-  
-  message("...Collecting articles about ", URLdecode(query), "...")
-  
-  #  Metadata ----
-  
-  message("...This query resulted in ",
-          ceiling(hits/10),
-          " pages...")
-  
-  message("...Collecting metadata and searching pages for Cut-Off Date...")
-  
-  for (i in 1:ceiling(hits/10)) {
-    message("...Page ", i, "/", ceiling(hits/10),"...")
-    query_link <- paste0(base_link, URLencode(query), "&page=", i)
-    parse_link <- read_html(query_link)
-    date[[i]] <- parse_link %>%
-      html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[2]/p[2]/span/text()') %>%
-      html_text() %>% parse_date() %>% as.character()
-    
-    
-    headline[[i]] <- parse_link %>%
-      html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[1]') %>%
-      html_text(trim = TRUE)
-    
-    link[[i]] <- parse_link %>%
-      html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[1]/h4/a') %>%
-      html_attr("href")
-    
-    if (date[[i]][10] < cut_off) {
-      
-      
-      for (n in 1:length(unlist(date))) {
-        newspaper[[n]] <- "Headline Daily"
-      }
-      
-      prelim_news_data_frame <- tibble(newspaper = newspaper, headline = unlist(headline), link = unlist(link), date = unlist(date)) %>%
-        filter(date >= cut_off)
-      
-      message("...Filtered content posted before ", ymd(cut_off),"...")
-      
-      break
-      
-      
-    }
-    
-  }
-  
-  
-  # Articles ----
-  
-  
-  message("...Now collecting ", length(prelim_news_data_frame$link)," articles...")
-  
-  
-  for (i in 1:length(prelim_news_data_frame$link)) {
-    
-    prelim_news_data_frame$link[i] <-
-      paste0("http://hd.stheadline.com", prelim_news_data_frame$link[i])
-    
-    parse_article <- read_html(prelim_news_data_frame$link[i])
-    message("...", i,"/",length(prelim_news_data_frame$link),"...")
-    
-    article_text <- parse_article %>%
-      html_nodes(xpath = '//*[@id="news-content"]') %>%
-      html_text(trim = TRUE)
-    
-    
-    if (length(article_text) != 0) {
-      article[i] <- article_text[article_text != ""]
-      
-    } else {
-      
-      article[i] <- "NA"
-      
-    }
-  }
-  
-  
-  
-  # Download Prep ----
-  
-  news_data_frame <-  prelim_news_data_frame %>%
-    mutate(article = article)
-  
-  message("...Scraping complete! Please press the download button for a .csv file...")
-  
-  news_data_frame
-  
-}
 
 
-
-hkfp_function <- function(page, query, cut_off) {
+hkfp_function <- function(query, cut_off) {
   
   
   page_link <- paste0("https://hongkongfp.com/?s=", query)
   
   page <- read_html(page_link) %>%
-    html_nodes(xpath = '/html/body/div/div[2]/section/main/nav/div/a[3]')%>%
+    html_nodes(xpath = '//*[@id="main"]/nav/div/a[3]')%>%
     html_text()
+  
   
   base_link <- "https://www.hongkongfp.com/page/"
   
@@ -582,33 +472,6 @@ hkfp_function <- function(page, query, cut_off) {
   query_link <- paste0(base_link,page,"/?s=", URLencode(query))
   
   message("...Collecting articles about ", URLdecode(query), "...")
-  
-  message("...Searching for Cut-off Date. This might take a couple of minutes...")
-  empty_page_catch <- tryCatch(read_html(query_link) %>%
-                                 html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[1]/header/h2/a')%>%
-                                 html_attr('href'),
-                               error = function(e){NA})
-  
-  i = 0
-  n = 1
-  while (is.na(empty_page_catch) == TRUE) {
-    i = i+n
-    message("...Processing ",i, "/50 (or less)...")
-    page = page-1
-    
-    query_link <- paste0(base_link,page,"/?s=", URLencode(query))
-    
-    empty_page_catch <- tryCatch(read_html(query_link) %>%
-                                   html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[1]/header/h2/a')%>%
-                                   html_attr('href'),
-                                 error = function(e){NA})
-    
-    
-  }
-  
-  
-  
-  
   
   #  Containers ----
   
@@ -623,7 +486,7 @@ hkfp_function <- function(page, query, cut_off) {
   
   message("...This query resulted in ",
           page,
-          " pages...")
+          " pages. Must download all data before filtering for based on cut-off date...")
   
   message("...Collecting metadata (Title, Date, Link)...")
   
@@ -632,40 +495,45 @@ hkfp_function <- function(page, query, cut_off) {
     query_link <- paste0(base_link,i,"/?s=", URLencode(query))
     
     link_parse <- read_html(query_link)
-    date[[i]] <- link_parse %>%
-      html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[*]/header/div/div/span') %>%
-      html_text() %>% parse_date(format = "%d %B %Y %H:%M") %>% as.character()
     
+    
+    
+    date[[i]] <- link_parse %>%
+      html_nodes(xpath = '//*[contains(@class, "type-post")]/div/div[1]/span[3]/a/time[1]') %>%
+      html_attr('datetime') %>%
+      as.character()
+    #message(date[[i]])
     
     headline[[i]] <- link_parse %>%
-      html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[*]/header/h2/a') %>%
+      html_nodes(xpath = '//*[contains(@class, "type-post")]/div/header/h2/a') %>%
       html_text(trim = TRUE) 
+    #message(headline)
     
     link[[i]] <- link_parse %>%
-      html_nodes(xpath = '//*[@id="primary"]/div/div[2]/div/article[*]/header/h2/a') %>%
+      html_nodes(xpath = '//*[contains(@class, "type-post")]/div/header/h2/a') %>%
       html_attr("href")
-    
-    message("...Metadata collected...")
-    if (date[[i]][1:150] < cut_off) {
-      
-      
-      
-      for (n in 1:length(unlist(date))) {
-        newspaper[[n]] <- "Hong Kong Free Press"
-      }
-      prelim_news_data_frame <- tibble(newspaper = newspaper, headline = unlist(headline), link = unlist(link), date = unlist(date)) %>%
-        filter(date >= cut_off)
-      
-      
-      message("...Filtered content posted before ", ymd(cut_off),"...")
-      
-      
-      break
-      
-      
-    }
-    
+    #message(link)
   }
+  
+  message("...Metadata collected...")
+  
+  
+  
+  for (i in 1:length(unlist(date))) {
+    newspaper[i] <- "Hong Kong Free Press"
+  }
+  prelim_news_data_frame <- tibble(newspaper = newspaper, headline = unlist(headline), link = unlist(link), date = unlist(date)) %>%
+    filter(date >= cut_off)
+  
+  
+  message("...Filtered content posted before ", ymd(cut_off),"...")
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -677,12 +545,13 @@ hkfp_function <- function(page, query, cut_off) {
     Article_Read <- read_html(prelim_news_data_frame$link[hit])
     message("...", hit,"...")
     Texting <- Article_Read %>%
-      html_nodes(xpath = '/html/body/div[1]/div/div[2]/div/main/article/div/p') %>%
-      html_text(trim = TRUE) %>% paste(collapse = " ")
+      html_nodes(xpath = '//*[contains(@class, "entry-content")]') %>%
+      html_text(trim = TRUE) %>%
+      trimws(which = "both")
     #str_split(Texting,"相關新聞")
     
     if (length(Texting) != "") {
-      article[hit] <- str_sub(Texting, end=-233)
+      article[hit] <- gsub("\\Support HKFP.*","", Texting)
     } else {
       article[hit] <- "NA"
     }
@@ -700,13 +569,14 @@ hkfp_function <- function(page, query, cut_off) {
 }
 
 
+
 # Define UI for data download app -----
 ui <- fluidPage(
   
   theme = shinytheme("cerulean"),
   useShinyjs(),
   # App headline ----
-  titlePanel("News Data Collection"),
+  titlePanel("NewsApp"),
   
   
   # Sidebar layout with input and output definitions ----
