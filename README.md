@@ -19,6 +19,7 @@ https://newsapi.org/docs
 
  
 <h2> How does the NewsApp work? </h2>
+
 1. Select the news source and enter the search term.
 
 2. On most newspapers you can also select a Start and End date to indicate the period in which to extract the relevant articles. Newspapers that have a "cut-off date" will collect all articles between the "cut-off" and the present day. 
