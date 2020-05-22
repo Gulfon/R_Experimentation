@@ -32,5 +32,5 @@ https://newsapi.org/docs
 <h2> Who created NewsApp and how can I find out more about it? </h2>
 NewsApp was created by Dmitry Kuznetsov. You can find the source code of the app by following this link: https://github.com/Gulfon/R_Experimentation.
 
-If you have any questions or suggestions, you can post issues to the APPs github page or can contact Dmitry at dmtkuznetsov@outlook.com
+If you have any questions or suggestions, you can post issues to the APPs github page or can contact Dmitry at dmtkuznetsov[@]outlook.com
  
