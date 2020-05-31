@@ -569,6 +569,117 @@ hkfp_function <- function(query, cut_off) {
 }
 
 
+headline_daily_function <- function(query, cut_off) {
+  
+  # Prerequisites ----
+  
+  base_link <- "http://hd.stheadline.com/search?keyword="
+  page_link <- paste0(base_link, URLencode(query))
+  parse_page <- read_html(page_link)
+  
+  hits <- parse_page %>%
+    html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[1]/div/small') %>%
+    html_text(trim = TRUE) %>% parse_number()
+  
+  page_num <- ceiling(hits / 10)
+  
+  
+  # Containers ----
+  
+  title <- list()
+  date <- list()
+  article <- vector()
+  link <- list()
+  newspaper <- vector()
+  
+  message("...Collecting articles about ", URLdecode(query), "...")
+  
+  #  Metadata ----
+  
+  message("...This query resulted in ",
+          ceiling(hits/10),
+          " pages...")
+  
+  message("...Collecting metadata and searching pages for Cut-Off Date...")
+  
+  for (i in 1:ceiling(hits/10)) {
+    message("...Page ", i, "/", ceiling(hits/10),"...")
+    query_link <- paste0(base_link, URLencode(query), "&page=", i)
+    parse_link <- read_html(query_link)
+    date[[i]] <- parse_link %>%
+      html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[2]/p[2]/span/text()') %>%
+      html_text() %>% parse_date() %>% as.character()
+    
+    
+    title[[i]] <- parse_link %>%
+      html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[1]') %>%
+      html_text(trim = TRUE)
+    
+    link[[i]] <- parse_link %>%
+      html_nodes(xpath = '/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div/div[1]/div/div/div/div[2]/div[*]/div[1]/h4/a') %>%
+      html_attr("href")
+    
+    if (date[[i]][10] < cut_off) {
+      
+      
+      for (n in 1:length(unlist(date))) {
+        newspaper[[n]] <- "Headline Daily"
+      }
+      
+      prelim_news_data_frame <- tibble(newspaper = newspaper, title = unlist(title), link = unlist(link), date = unlist(date)) %>%
+        filter(date >= cut_off)
+      
+      message("...Filtered content posted before ", ymd(cut_off),"...")
+      
+      break
+      
+      
+    }
+    
+  }
+  
+  
+  # Articles ----
+  
+  
+  message("...Now collecting ", length(prelim_news_data_frame$link)," articles...")
+  
+  
+  for (i in 1:length(prelim_news_data_frame$link)) {
+    
+    prelim_news_data_frame$link[i] <-
+      paste0("http://hd.stheadline.com", prelim_news_data_frame$link[i])
+    
+    parse_article <- read_html(prelim_news_data_frame$link[i])
+    message("...", i,"/",length(prelim_news_data_frame$link),"...")
+    
+    article_text <- parse_article %>%
+      html_nodes(xpath = '//*[@id="news-content"]') %>%
+      html_text(trim = TRUE)
+    
+    
+    if (length(article_text) != 0) {
+      article[i] <- article_text[article_text != ""]
+      
+    } else {
+      
+      article[i] <- "NA"
+      
+    }
+  }
+  
+  
+  
+  # Download Prep ----
+  
+  news_data_frame <-  prelim_news_data_frame %>%
+    mutate(article = article)
+  
+  message("...Scraping complete! Please press the download button for a .csv file...")
+  
+  news_data_frame
+  
+}
 
 # Define UI for data download app -----
 ui <- fluidPage(
