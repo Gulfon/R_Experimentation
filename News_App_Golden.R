@@ -408,7 +408,7 @@ news_api <- function(query = NULL, qInTitle = NULL, domains = NULL,
   
   maxPages <- ceiling(pages[["totalResults"]] / 20)
   
-  if(api_type == "free"){
+  if(api_type == "FREE (Developer account)"){
     maxPages = 5
     message(".....USING FREE API; MAX PAGES = 5.....")
   }
@@ -690,16 +690,25 @@ ui <- fluidPage(
   titlePanel("NewsApp"),
   
   
+  
   # Sidebar layout with input and output definitions ----
   sidebarLayout(
     # Sidebar panel for inputs ----
+    
+    
+    
     sidebarPanel(
+      tags$div(class="header", checked=NA,
+               tags$p("NewsApp is a tool for extracting news articles from various online editions of newspapers and tabulating the results to a downloadable csv spreadsheet")),
+      hr(),
       shiny::actionButton(
         inputId = 'doc_1',
-        label = "Welcome. Click Here for Introduction",
+        label = "Click here for more information about NewsApp",
         icon = icon("th"),
         onclick = "window.open('https://github.com/Gulfon/R_Experimentation/blob/master/README.md')"
       ),
+      
+      hr(),
   
       
       # Input: Choose dataset ----
@@ -797,8 +806,8 @@ ui <- fluidPage(
           "Choose API Type",
           choices = c(
             "",
-            "free",
-            "business"
+            "FREE (Developer account)",
+            "PAID (Business/Enterprise account)"
           )
         )
       ),
@@ -811,10 +820,10 @@ ui <- fluidPage(
       conditionalPanel(condition = "input.dataset == '[US] New York Times'",
                        textInput("APIN", "Enter New York Times API Key")),
       ## NewsAPI
-      conditionalPanel(condition = "input.API_type == 'free'",
+      conditionalPanel(condition = "input.API_type == 'FREE (Developer account)'",
                        textInput("NAPIF", "Enter News API Developer Key")),
       
-      conditionalPanel(condition = "input.API_type == 'business'",
+      conditionalPanel(condition = "input.API_type == 'PAID (Business/Enterprise account)'",
                        textInput("NAPIP", "Enter News API Business Key")),
       
       
