@@ -5,7 +5,7 @@ NewsApp is a tool for searching and extracting of news articles from online vers
 Clicking on “Choose Source” displays the list of available newspapers. These include titles from the UK (BBC, Financial Times, Guardian, and the Independent), the US (New York Times, Washington Post, Wall Street Journal), and Hong Kong/China (Hong Kong Free Press, Headline Daily,  Xinhuanet).
  
 <h2> Why do some newspapers require API keys to access and download the newspaper articles?</h2>
-The API key is necessary because it provides a channel for the NewsApp to connect to the data provided by the online newspaper. To obtain the API key for the specific newspaper you will need to go to that newspaper’s registration page. You can find the links to the respective newspapers below:
+The API key is necessary because it provides a channel for the NewsApp to connect to the data provided by the online newspaper(s). To obtain the API key for the specific newspaper you will need to go to that newspaper’s registration page to first obtain a key. An API key is required for the following newspapers:
 
 <b>New York Times</b>
 https://developer.nytimes.com/docs/articlesearch-product/1/overview
@@ -13,9 +13,11 @@ https://developer.nytimes.com/docs/articlesearch-product/1/overview
 <b>Guardian</b>
 https://open-platform.theguardian.com/documentation/
 
+Several other newspapers in NewsApp require and API key from NewsAPI. You can obtain the API key from the link below:
+
 <b>News API</b>
 https://newsapi.org/docs
-<i>It should be noted that the free version of NewsAPI will only provide access to 25 most recent articles.</i>
+<i>It should be noted that the free version of NewsAPI will only provide access to limited number of article with only the first 30-40 words of the article displayed. The paid version should provide full access to complete texts.</i>
 
  
 <h2> How does the NewsApp work? </h2>
