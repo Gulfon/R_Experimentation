@@ -17,7 +17,7 @@ Several other newspapers in NewsApp require and API key from NewsAPI. You can ob
 
 <b>News API</b>
 https://newsapi.org/docs
-<i>It should be noted that the free version of NewsAPI will only provide access to limited number of article with only the first 30-40 words of the article displayed. The paid version should provide full access to complete texts.</i>
+<i>It should be noted that the free version of NewsAPI will only provide access to a maximum of 5 pages of articles published within the last 30 days with only the first 30-40 words of the article displayed. The paid version should provide full access to complete texts.</i>
 
  
 <h2> How does the NewsApp work? </h2>
