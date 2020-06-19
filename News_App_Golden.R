@@ -806,6 +806,7 @@ ui <- fluidPage(
           "Choose API Type",
           choices = c(
             "",
+            "No Selection",
             "FREE (Developer account)",
             "PAID (Business/Enterprise account)"
           )
@@ -820,11 +821,8 @@ ui <- fluidPage(
       conditionalPanel(condition = "input.dataset == '[US] New York Times'",
                        textInput("APIN", "Enter New York Times API Key")),
       ## NewsAPI
-      conditionalPanel(condition = "input.API_type == 'FREE (Developer account)'",
-                       textInput("NAPIF", "Enter News API Developer Key")),
-      
-      conditionalPanel(condition = "input.API_type == 'PAID (Business/Enterprise account)'",
-                       textInput("NAPIP", "Enter News API Business Key")),
+      conditionalPanel(condition = "input.API_type != 'No Selection",
+                       textInput("NAPIF", "Enter News API Key")),
       
       
       
