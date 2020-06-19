@@ -111,7 +111,7 @@ ft_function <- function(query, from_date, to_date) {
     message("...Working on Page ", i,"... ")
     
   }
-
+  
   
   news_data_frame <- tibble(headline = unlist(headline), link = unlist(link), date = unlist(date))
   
@@ -239,117 +239,117 @@ guardian_function <- function(from_date, to_date, query, api) {
 }
 
 nyt_function <- function(from_date, to_date, query, api) {
+  
+  # Prerequisites ----
+  
+  base_link <- paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",
+                      query, "&begin_date=",
+                      from_date, "&end_date=",
+                      to_date, "&facet_filter=true&api-key=", trimws(api)
+  )
+  
+  nyt_json <- fromJSON(base_link)
+  
+  pages <- ceiling(nyt_json$response$meta$hits[1] / 10)
+  
+  if (pages > 200) {
     
-    # Prerequisites ----
+    message("...You're trying to gather ", pages, "pages...")
+    pages <- 200
+    message("...NYT API Allows for 200 Pages Before Kicking you Out...")
     
-    base_link <- paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",
-                        query, "&begin_date=",
-                        from_date, "&end_date=",
-                        to_date, "&facet_filter=true&api-key=", trimws(api)
-    )
+  } else {
     
-    nyt_json <- fromJSON(base_link)
-    
-    pages <- ceiling(nyt_json$response$meta$hits[1] / 10)
-    
-    if (pages > 200) {
-      
-      message("...You're trying to gather ", pages, "pages...")
-      pages <- 200
-      message("...NYT API Allows for 200 Pages Before Kicking you Out...")
-      
-    } else {
-      
-      pages <- pages
-      
-    }
-    
-    # Status Messages ----
-    
-    message("...Collecting articles about ", URLdecode(query), "...")
-    message("...Total Pages: ", pages, "...")
-    message("...Completion in ", ceiling((pages * 6 + 120) / 60), " minutes", "...")
-    
-    # Containers ----
-    
-    newspaper <- list()
-    headline <- list()
-    section <- list()
-    date <- list()
-    link <- list()
-    article <- vector()
-    
-    # Metadata & Pages ----
-    
-    for (page in 1:pages) {
-      page_link <-
-        paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=", query,
-               "&begin_date=", from_date,
-               "&end_date=", to_date,
-               "&page=",page,
-               "&facet_filter=true&api-key=", trimws(api))
-      
-      page_json <- fromJSON(page_link)#Constructing the url
-      
-      message("...Gathering page ", page, "/", pages,"...")
-      
-      headline[[page]] <- page_json[["response"]][["docs"]][["headline"]][["main"]]
-      
-      section[[page]] <- page_json[["response"]][["docs"]][["section_name"]]
-      
-      link[[page]] <- page_json[["response"]][["docs"]][["web_url"]]
-      
-      date[[page]] <- page_json[["response"]][["docs"]][["pub_date"]]
-      
-      Sys.sleep(6) #Waiting to ensure that the Api doesn't kick us out
-    }
-    
-    article_prep <- unlist(link)
-    
-    
-    
-    # Articles ----
-    
-    for (n in 1:length(article_prep)) {
-      
-      if (str_detect(article_prep[n], c("video")) == FALSE) {
-        
-        get_link <- read_html(article_prep[n])
-        parse_link <- htmlParse(get_link)
-        
-        extract_article <- unlist(xpathSApply(parse_link, path = '//*[@id="story"]/section/div', xmlValue))
-        article[n] <- paste(trimws(extract_article), collapse = "")
-      } else {
-        article[n] <- NA
-      }
-      
-      
-      message("...Article ", n, "/", length(article_prep), " Retrieved", "...")
-      
-      Sys.sleep(.2)
-    }
-    
-    # Newspaper (Meta) ----
-    
-    for (n in 1:length(unlist(headline))) {
-      newspaper[[n]] <- "New York Times"
-    }
-    
-    # Download Prep ----
-    
-    news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = article, section = unlist(section))
-    
-    message("...Scraping complete! Please press the download button for a .csv file...")
-    
-    news_data_frame
+    pages <- pages
     
   }
+  
+  # Status Messages ----
+  
+  message("...Collecting articles about ", URLdecode(query), "...")
+  message("...Total Pages: ", pages, "...")
+  message("...Completion in ", ceiling((pages * 6 + 120) / 60), " minutes", "...")
+  
+  # Containers ----
+  
+  newspaper <- list()
+  headline <- list()
+  section <- list()
+  date <- list()
+  link <- list()
+  article <- vector()
+  
+  # Metadata & Pages ----
+  
+  for (page in 1:pages) {
+    page_link <-
+      paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=", query,
+             "&begin_date=", from_date,
+             "&end_date=", to_date,
+             "&page=",page,
+             "&facet_filter=true&api-key=", trimws(api))
+    
+    page_json <- fromJSON(page_link)#Constructing the url
+    
+    message("...Gathering page ", page, "/", pages,"...")
+    
+    headline[[page]] <- page_json[["response"]][["docs"]][["headline"]][["main"]]
+    
+    section[[page]] <- page_json[["response"]][["docs"]][["section_name"]]
+    
+    link[[page]] <- page_json[["response"]][["docs"]][["web_url"]]
+    
+    date[[page]] <- page_json[["response"]][["docs"]][["pub_date"]]
+    
+    Sys.sleep(6) #Waiting to ensure that the Api doesn't kick us out
+  }
+  
+  article_prep <- unlist(link)
+  
+  
+  
+  # Articles ----
+  
+  for (n in 1:length(article_prep)) {
+    
+    if (str_detect(article_prep[n], c("video")) == FALSE) {
+      
+      get_link <- read_html(article_prep[n])
+      parse_link <- htmlParse(get_link)
+      
+      extract_article <- unlist(xpathSApply(parse_link, path = '//*[@id="story"]/section/div', xmlValue))
+      article[n] <- paste(trimws(extract_article), collapse = "")
+    } else {
+      article[n] <- NA
+    }
+    
+    
+    message("...Article ", n, "/", length(article_prep), " Retrieved", "...")
+    
+    Sys.sleep(.2)
+  }
+  
+  # Newspaper (Meta) ----
+  
+  for (n in 1:length(unlist(headline))) {
+    newspaper[[n]] <- "New York Times"
+  }
+  
+  # Download Prep ----
+  
+  news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = article, section = unlist(section))
+  
+  message("...Scraping complete! Please press the download button for a .csv file...")
+  
+  news_data_frame
+  
+}
 
 
 news_api <- function(query = NULL, qInTitle = NULL, domains = NULL, 
-                          excludeDomains = NULL, from = NULL, to = NULL, 
-                          language = NULL, query1 = NULL, sources = NULL, 
-                          sortBy = NULL, api = NULL, api_type = NULL) {
+                     excludeDomains = NULL, from = NULL, to = NULL, 
+                     language = NULL, query1 = NULL, sources = NULL, 
+                     sortBy = NULL, api = NULL, api_type = NULL) {
   
   
   # Prerequisites ----
@@ -413,7 +413,7 @@ news_api <- function(query = NULL, qInTitle = NULL, domains = NULL,
     message(".....USING FREE API; MAX PAGES = 5.....")
   }
   
-
+  
   message("...Collecting Articles About ", query, "...")
   message("...Total Pages: ", maxPages, "...")
   
@@ -709,7 +709,7 @@ ui <- fluidPage(
       ),
       
       hr(),
-  
+      
       
       # Input: Choose dataset ----
       selectInput(
@@ -806,7 +806,6 @@ ui <- fluidPage(
           "Choose API Type",
           choices = c(
             "",
-            "No Selection",
             "FREE (Developer account)",
             "PAID (Business/Enterprise account)"
           )
@@ -821,7 +820,7 @@ ui <- fluidPage(
       conditionalPanel(condition = "input.dataset == '[US] New York Times'",
                        textInput("APIN", "Enter New York Times API Key")),
       ## NewsAPI
-      conditionalPanel(condition = "input.API_type != 'No Selection",
+      conditionalPanel(condition = "input.API_type !=''",
                        textInput("NAPIF", "Enter News API Key")),
       
       
@@ -870,7 +869,7 @@ server <- function(input, output, session) {
         sources = input$sources, 
         api_type = input$API_type
       ),
-     
+      
       "[UK] FT" = ft_function(
         from_date = input$start4,
         to_date = input$end4,
