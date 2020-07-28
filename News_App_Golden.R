@@ -160,7 +160,8 @@ ft_function <- function(query, from_date, to_date) {
   # Download Prep ----
   
   news_data_frame <- add_column(news_data_frame, newspaper = newspaper, article = article) %>%
-    select(newspaper, headline, link, date, article)
+    select(newspaper, headline, link, date, article) %>%
+    unique()
   
   message("...Scraping complete! Once the table appears, please press the download button for a .csv file...")
   
@@ -229,7 +230,8 @@ guardian_function <- function(from_date, to_date, query, api) {
   
   # Download Prep ----
   ## removed section for the time, seems to bug out
-  news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = unlist(article))
+  news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = unlist(article)) %>%
+    unique()
   
   message("...Scraping complete! Please press the download button for a .csv file...")
   message(typeof(news_data_frame))
@@ -337,7 +339,8 @@ nyt_function <- function(from_date, to_date, query, api) {
     
     # Download Prep ----
     
-    news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = article, section = unlist(section))
+    news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = article, section = unlist(section)) %>%
+      unique()
     
     message("...Scraping complete! Please press the download button for a .csv file...")
     
@@ -443,7 +446,8 @@ news_api <- function(query = NULL, qInTitle = NULL, domains = NULL,
   
   
   # Download Prep ----
-  news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = unlist(article))
+  news_data_frame <- tibble(newspaper = unlist(newspaper), headline = unlist(headline), link = unlist(link), date = unlist(date), article = unlist(article)) %>%
+    unique()
   
   message("...Scraping complete! Please press the download button for a .csv file...")
   
@@ -486,7 +490,7 @@ hkfp_function <- function(query, cut_off) {
   
   message("...This query resulted in ",
           page,
-          " pages. Must download all data before filtering for based on cut-off date...")
+          " pages. Must download all data before filtering...")
   
   message("...Collecting metadata (Title, Date, Link)...")
   
@@ -559,7 +563,8 @@ hkfp_function <- function(query, cut_off) {
   
   # Preparing Data data for download ----
   news_data_frame <-  prelim_news_data_frame %>%
-    mutate(article = article)
+    mutate(article = article) %>%
+    unique()
   
   message("...Scraping complete! Please press the download button for a .csv file...")
   
@@ -600,7 +605,7 @@ headline_daily_function <- function(query, cut_off) {
           ceiling(hits/10),
           " pages...")
   
-  message("...Collecting metadata and searching pages for Cut-Off Date...")
+  message("...Collecting metadata and searching pages for Start Date...")
   
   for (i in 1:ceiling(hits/10)) {
     message("...Page ", i, "/", ceiling(hits/10),"...")
@@ -673,7 +678,8 @@ headline_daily_function <- function(query, cut_off) {
   # Download Prep ----
   
   news_data_frame <-  prelim_news_data_frame %>%
-    mutate(article = article)
+    mutate(article = article) %>%
+    unique()
   
   message("...Scraping complete! Please press the download button for a .csv file...")
   
@@ -760,12 +766,12 @@ ui <- fluidPage(
       # Headline Daily
       
       conditionalPanel(condition = "input.dataset == '[HK] Headline Daily'",
-                       dateInput("end5", "Cut-Off Date", format = "yyyy-mm-dd")),
+                       dateInput("end5", "Start Date", format = "yyyy-mm-dd")),
       
       # Hong Kong Free Press
       
       conditionalPanel(condition = "input.dataset == '[HK] Hong Kong Free Press'",
-                       dateInput("end6", "Cut-Off Date", format = "yyyy-mm-dd")),
+                       dateInput("end6", "Start Date", format = "yyyy-mm-dd")),
       
       # Input: Query ----
       
