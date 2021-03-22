@@ -19,9 +19,6 @@ library(tibble)
 library(lubridate)
 library(eply)
 
-###Guardian API: "b80008a9-a43c-4047-a0ad-47f0cd8efb20"
-###NYTIMES_API <- "KCOgDvSOdjGOQeF0kfQJ7Ch4IqMhEG42"
-###newsapi <- "0017f268ff0b414bbb505d701dddacb0"
 
 
 ft_function <- function(query, from_date, to_date) {
