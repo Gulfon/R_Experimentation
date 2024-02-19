@@ -300,7 +300,7 @@ nyt_function <- function(from_date, to_date, query, api) {
     
     date[[page]] <- page_json[["response"]][["docs"]][["pub_date"]]
     
-    Sys.sleep(6) #Waiting to ensure that the Api doesn't kick us out
+    Sys.sleep(12) #Waiting to ensure that the Api doesn't kick us out
   }
   
   article_prep <- unlist(link)
