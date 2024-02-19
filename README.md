@@ -1,5 +1,7 @@
 <h2> What is NewsApp? </h2>
 NewsApp is a tool for searching and extracting of news articles from online versions of newspapers based on certain keyword(s) and time period. The resulting .csv table will contain Links, Publication Dates, Headlines, Newspaper Name and (if available) full articles.
+
+Note: at the moment, only NYT and Guardian API access functions. You will need your own API keys!
  
 <h2> What online versions of newspapers are available? </h2>
 Clicking on “Choose Source” displays the list of available newspapers. These include titles from the UK (BBC, Financial Times, Guardian, and the Independent), the US (New York Times, Washington Post, Wall Street Journal), and Hong Kong/China (Hong Kong Free Press, Headline Daily,  Xinhuanet).
